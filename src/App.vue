@@ -13,13 +13,21 @@ export default {
 <style lang="scss">
 @import '~bulma';
 
+html {
+  background-color: #ecf0f5;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
 #app {
-  width: 1136px;
-  border: solid 1px rgba(197, 197, 197, 0.44);
+  width: 100%;
+  max-width: 1136px;
+  /*border: solid 1px rgba(197, 197, 197, 0.44);*/
   font-family: 'Avenir', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-align: center;
+  /*text-align: center;*/
   color: #2c3e50;
 }
 </style>
