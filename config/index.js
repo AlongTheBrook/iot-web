@@ -5,6 +5,7 @@
 const path = require('path')
 
 const backendResourcesPath = 'E:/workspace/eclipse-jee/iot-web/src/main/resources'
+process.env.HOST = '0.0.0.0'
 
 module.exports = {
   backendResourcesPath: backendResourcesPath,
@@ -47,7 +48,7 @@ module.exports = {
   },
 
   build: {
-    // Template for index.html	
+    // Template for index.html
     // index: path.resolve(__dirname, '../dist/index.html
     index: path.resolve(backendResourcesPath, 'templates', 'createOrModify.pre.html'),
 
