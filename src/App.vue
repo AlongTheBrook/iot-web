@@ -18,6 +18,7 @@ html {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);  // 去除移动端点击操作出现的灰色快
 }
 
 #app {
