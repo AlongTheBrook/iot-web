@@ -4,8 +4,13 @@ import Vue from 'vue'
 import App from './App'
 import router from './router'
 import store from './store'
+import VeeValidate, { Validator } from 'vee-validate'
+import zhCN from 'vee-validate/dist/locale/zh_CN'
 
 Vue.config.productionTip = false
+
+Validator.localize('zh_CN', zhCN)
+Vue.use(VeeValidate)
 
 /* eslint-disable no-new */
 new Vue({
