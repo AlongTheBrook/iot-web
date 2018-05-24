@@ -112,14 +112,58 @@
         <div>数据配置</div>
         <div :class="$style.tag">数据配置</div>
       </div>
-      <div :class="$style.body">内容</div>
+      <div :class="[$style.body, $style.data]">
+        <div>
+          <div :class="$style.index">64</div>
+          <input class="is-radiusless" :class="$style.name" type="text" placeholder="<数据名称>"/>
+          <select class="is-radiusless" :class="$style.valueType">
+            <option :value="'Boolean'">开关量</option>
+            <option :value="'Short'">短整数</option>
+            <option :value="'UShort'">无符号短整数</option>
+            <option :value="'Integer'">整数</option>
+            <option :value="'UInteger'">无符号整数</option>
+            <option :value="'Long'">长整数</option>
+            <option :value="'Float'">浮点数</option>
+            <option :value="'Double'">双精度浮点数</option>
+            <option :value="'String'">字符串</option>
+          </select>
+          <select class="is-radiusless" :class="$style.charset">
+            <option>ASCII</option>
+            <option>GBK</option>
+            <option>UTF-8</option>
+          </select>
+          <div :class="$style.readOnly">读写</div>
+          <select class="is-radiusless" :class="$style.dataModelCode">
+            <option :value="1">线圈</option>
+            <option :value="2">离散输入</option>
+            <option :value="3">保持寄存器</option>
+            <option :value="4">输入寄存器</option>
+          </select>
+          <div :class="$style.startingAddress" ><input class="is-radiusless" type="number" min="0"/></div>
+          <div :class="$style.addressCount" ><input class="is-radiusless" type="number" min="0"/></div>
+          <div :class="$style.isBit">按位</div>
+          <select class="is-radiusless" :class="$style.bitIndex">
+            <option v-for="index in 16" :key="index - 1" :value="index - 1">{{ index - 1 }}</option>
+          </select>
+        </div>
+        <div>
+          <div>0</div>
+          <div>数据名称</div>
+          <div>数据类型</div>
+          <div>字符集</div>
+          <div>数据模型</div>
+          <div>起始地址</div>
+          <div>地址个数</div>
+          <div>是否按位</div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 </template>
 
 <script>
-// 初始化：创建：数据需要指定默认值；修改：初始化descriptorObj为descriptor。
+// 初始化：创建：数据需要指定默认值；修改：初始化descriptorObj为descriptor，同时适用于设备和数据。
 // 提交：需要检查验证状态
 let deviceDebug = JSON.parse('{"name":"接口测试#1","desc":"这里是描述#1","alarmDataIndex":2,"descriptorType":"modbus","descriptorObj":{"isTcp":false,"slaveAddress":1,"allDataCountUpper":64,"allDataByteCountUpper":256,"allFrameCountUpper":16,"frameByteCountUpper":128,"hbIntervalSec":60,"daIntervalSec":120},"datas":[{"name":"进口压力","valueType":"Short","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":0,"addressCount":1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":"UTF-8"}},{"name":"出口压力","valueType":"Short","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":1,"addressCount":1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":"GBK"}},{"name":"电流","valueType":"Short","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":2,"addressCount":1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":null}},{"name":"电流2","valueType":"Long","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":3,"addressCount":1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":null}}]}')
 
@@ -127,9 +171,9 @@ export default {
   name: 'device-cfg',
   data () {
     return {
-      collapsedBasicMsg: false,
-      collapsedConnectWay: false,
-      collapsedDeviceType: false,
+      collapsedBasicMsg: true,
+      collapsedConnectWay: true,
+      collapsedDeviceType: true,
       collapsedDataCfg: false,
       device: deviceDebug,
       alertBeforeUnload: true,
@@ -234,7 +278,6 @@ export default {
 
 .input {
   @include underline-form;
-  padding: 0 0.25rem 0.1rem 0.25rem;
   &[readonly] {
     color: gray;
   }
@@ -352,6 +395,112 @@ export default {
           & > * {
             flex: auto;
             padding-right: 0.5rem;
+          }
+        }
+        &.data {
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-start;
+          align-items: stretch;
+          $dataHeight: 1.75rem;
+          & > * {
+            flex: auto;
+            display: flex;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            align-items: center;
+            padding: 0;
+            margin: 0.25rem;
+            background-color: rgba(224, 224, 224, 0.26);
+            & > * {
+              flex: none;
+              padding: 0 0.75rem;
+              height: $dataHeight;
+              line-height: $dataHeight;
+              border-left: 1px solid rgba(192, 192, 192, 0.25) !important;
+              &:first-child {
+                flex: none;
+                font-weight: unset;
+              }
+              &:nth-child(1), &:nth-child(2) {
+                border-left: unset !important;
+              }
+            }
+            @mixin o-form-minxin {
+              font-size: 1rem;
+              font-family: inherit;
+              color: inherit;
+              border: none;
+              background-color: unset;
+              &:focus {
+                outline: unset;
+                background-color: rgba(224, 224, 224, 0.38);
+              }
+            }
+            input, select {
+              @include o-form-minxin;
+            }
+            & > .index {
+              width: $dataHeight;
+              background-color: rgba(159, 159, 159, 0.75);
+              color: white;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              cursor: move;
+            }
+            & > .name {
+              width: 10rem;
+            }
+            & > .value-type {
+            }
+            & > .charset {
+              border-left: unset !important;
+            }
+            & > .read-only {
+            }
+            & > .data-model-code {
+            }
+            & > .starting-address {
+              position: relative;
+              padding: 0;
+              width: 8rem;
+              &::before {
+                content: '地址';
+                position: absolute;
+                left: 0.75rem;
+                line-height: $dataHeight;
+              }
+              & > input {
+                height: 100%;
+                width: 100%;
+                padding-left: 2.5rem;
+                padding: 0 0.75rem 0 calc(2.5rem + 0.75rem);
+              }
+            }
+            & > .address-count {
+              position: relative;
+              padding: 0;
+              width: 6.5rem;
+              border-left: unset !important;
+              &::before {
+                content: '数量';
+                position: absolute;
+                left: 0.75rem;
+                line-height: $dataHeight;
+              }
+              & > input {
+                height: 100%;
+                width: 100%;
+                padding-left: 2.5rem;
+                padding: 0 0.75rem 0 calc(2.5rem + 0.75rem);
+              }
+            }
+            & > .is-bit {
+            }
+            & > .bit-index {
+              border-left: unset !important;
+            }
           }
         }
       }
