@@ -2,8 +2,8 @@
 <div :class="$style.module">
   <div :class="$style.title">
     <div>
-      <div>创建或修改设备</div>
-      <a class="button is-primary is-radiusless" :class="{'is-loading': isCommitting}" :disabled="isCommitting" @click="commit">创建设备</a>
+      <div>{{ isModify ? '修改设备' : '创建设备'}}</div>
+      <a class="button is-primary is-radiusless" :class="{'is-loading': isCommitting}" :disabled="isCommitting" @click="commit">{{ isModify ? '修改设备' : '创建设备' }}</a>
     </div>
     <div :class="$style.error" v-if="committingErr">{{ committingErr }}</div>
   </div>
@@ -156,6 +156,9 @@ export default {
     },
     fieldNames () {
       return Object.keys(this.fields)
+    },
+    isModify () {
+      return Boolean(this.device.id)
     }
   },
   mounted () {
