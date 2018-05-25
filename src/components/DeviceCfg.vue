@@ -1,3 +1,4 @@
+<!--suppress HtmlFormInputWithoutLabel -->
 <template>
 <div :class="$style.module">
   <div :class="$style.title">
@@ -139,8 +140,12 @@
             <option :value="3">保持寄存器</option>
             <option :value="4">输入寄存器</option>
           </select>
-          <div :class="$style.startingAddress" ><input class="is-radiusless" type="number" min="0"/></div>
-          <div :class="$style.addressCount" ><input class="is-radiusless" type="number" min="0"/></div>
+          <div :class="$style.startingAddress" >
+            <input class="is-radiusless" type="number" min="0"/>
+          </div>
+          <div :class="$style.addressCount" @click="$refs['addressCount'].focus()">
+            <input ref="addressCount" class="is-radiusless" type="number" min="0"/>
+          </div>
           <div :class="$style.isBit">按位</div>
           <select class="is-radiusless" :class="$style.bitIndex">
             <option v-for="index in 16" :key="index - 1" :value="index - 1">{{ index - 1 }}</option>
@@ -167,6 +172,7 @@
 // 提交：需要检查验证状态
 let deviceDebug = JSON.parse('{"name":"接口测试#1","desc":"这里是描述#1","alarmDataIndex":2,"descriptorType":"modbus","descriptorObj":{"isTcp":false,"slaveAddress":1,"allDataCountUpper":64,"allDataByteCountUpper":256,"allFrameCountUpper":16,"frameByteCountUpper":128,"hbIntervalSec":60,"daIntervalSec":120},"datas":[{"name":"进口压力","valueType":"Short","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":0,"addressCount":1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":"UTF-8"}},{"name":"出口压力","valueType":"Short","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":1,"addressCount":1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":"GBK"}},{"name":"电流","valueType":"Short","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":2,"addressCount":1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":null}},{"name":"电流2","valueType":"Long","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":3,"addressCount":1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":null}}]}')
 
+// noinspection JSUnusedGlobalSymbols
 export default {
   name: 'device-cfg',
   data () {
@@ -184,7 +190,7 @@ export default {
   computed: {
     hbIntervalMinu: {
       get () {
-        return Number.parseInt(this.device.descriptorObj.hbIntervalSec / 60)
+        return Math.round(Number(this.device.descriptorObj.hbIntervalSec / 60))
       },
       set (newValue) {
         this.device.descriptorObj.hbIntervalSec = Number.parseInt(newValue) * 60
@@ -192,7 +198,7 @@ export default {
     },
     daIntervalMinu: {
       get () {
-        return Number.parseInt(this.device.descriptorObj.daIntervalSec / 60)
+        return Math.round(Number(this.device.descriptorObj.daIntervalSec / 60))
       },
       set (newValue) {
         this.device.descriptorObj.daIntervalSec = Number.parseInt(newValue) * 60
@@ -474,7 +480,6 @@ export default {
               & > input {
                 height: 100%;
                 width: 100%;
-                padding-left: 2.5rem;
                 padding: 0 0.75rem 0 calc(2.5rem + 0.75rem);
               }
             }
@@ -492,7 +497,6 @@ export default {
               & > input {
                 height: 100%;
                 width: 100%;
-                padding-left: 2.5rem;
                 padding: 0 0.75rem 0 calc(2.5rem + 0.75rem);
               }
             }
