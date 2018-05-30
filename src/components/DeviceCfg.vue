@@ -18,7 +18,7 @@
         <div>
           <div>名称</div>
           <div>
-            <input v-model="device.name" name="名称" ref="名称"
+            <input v-model.trim="device.name" name="名称" ref="名称"
                    class="input is-small is-radiusless" :class="[$style.input, errors.has('名称') ? $style.error : null]" type="text" placeholder=""
                    v-validate="'required|max:64'">
             <div v-show="errors.has('名称')" :class="$style.error">{{ errors.first('名称') }}</div>
@@ -27,7 +27,7 @@
         <div>
           <div>描述</div>
           <div>
-            <input  v-model="device.desc" name="描述" ref="描述"
+            <input  v-model.trim="device.desc" name="描述" ref="描述"
                     class="input is-small is-radiusless" :class="[$style.input, errors.has('描述') ? $style.error : null]" type="text" placeholder=""
                     v-validate="'max:64'">
             <div v-show="errors.has('描述')" :class="$style.error">{{ errors.first('描述') }}</div>
@@ -58,7 +58,7 @@
           <div>心跳周期</div>
           <div>
             <div :class="$style.inputGroup">
-              <input v-model="hbIntervalMinu" name="心跳周期" ref="心跳周期"
+              <input v-model.number="hbIntervalMinu" name="心跳周期" ref="心跳周期"
                      class="input is-small is-radiusless" :class="[$style.input, errors.has('心跳周期') ? $style.error : null]" type="number" min="1" placeholder=""
                      v-validate="'required|numeric|min_value:1|max_value:60'">
               <div>分</div>
@@ -78,7 +78,7 @@
           <div>设备类型</div>
           <div>
             <div class="select is-small " :class="$style.select">
-              <select class="is-radiusless" v-model="device.descriptorObj.isTcp">
+              <select class="is-radiusless" v-model="device.descriptorObj.isTcp" @change="onIsTcpChange">
                 <option :value="false">MODBUS-RTU</option>
                 <option :value="true">MODBUS-TCP</option>
               </select>
@@ -88,8 +88,8 @@
         <div v-show="!device.descriptorObj.isTcp">
           <div>从站地址</div>
           <div>
-            <input v-model="device.descriptorObj.slaveAddress" name="从站地址" ref="从站地址"
-              class="input is-small is-radiusless" :class="[$style.input, errors.has('从站地址') ? $style.error : null]" type="text" placeholder=""
+            <input v-model.number="device.descriptorObj.slaveAddress" name="从站地址" ref="从站地址"
+              class="input is-small is-radiusless" :class="[$style.input, errors.has('从站地址') ? $style.error : null]" type="number" placeholder=""
               v-validate="'required|numeric|min_value:1|max_value:255'">
             <div v-show="errors.has('从站地址')" :class="$style.error">{{ errors.first('从站地址') }}</div>
           </div>
@@ -98,7 +98,7 @@
           <div>数采间隔</div>
           <div>
             <div :class="$style.inputGroup">
-              <input v-model="daIntervalMinu" name="数采间隔" ref="数采间隔"
+              <input v-model.number="daIntervalMinu" name="数采间隔" ref="数采间隔"
                 class="input is-small is-radiusless" :class="[$style.input, errors.has('数采间隔') ? $style.error : null]" type="number" min="1" placeholder=""
                 v-validate="'required|numeric|min_value:1|max_value:60'">
               <div>分</div>
@@ -114,12 +114,13 @@
         <div :class="$style.tag">数据配置</div>
       </div>
       <div :class="[$style.body, $style.data]">
-        <div>
-          <div :class="$style.index">64</div>
-          <input class="is-radiusless" :class="$style.name" type="text" placeholder="<数据名称>"/>
-          <select class="is-radiusless" :class="$style.valueType">
+        <div v-for="(data, index) in device.datas" :key="data.id">
+          <div :class="$style.index">{{ index }}</div>
+          <input v-model.trim="data.name" :name="dataRefName(data.id, 'name')" :ref="dataRefName(data.id, 'name')" v-validate="'max:64'"
+                 class="is-radiusless" :class="[$style.name, errors.has(dataRefName(data.id, 'name')) ? $style.error : null]" type="text" placeholder="<数据名称>" />
+          <select v-model="data.valueType" class="is-radiusless" :class="$style.valueType" @change="onValueTypeChange(data)">
             <option :value="'Boolean'">开关量</option>
-            <option :value="'Short'">短整数</option>
+            <option :value="'Short'" selected>短整数</option>
             <option :value="'UShort'">无符号短整数</option>
             <option :value="'Integer'">整数</option>
             <option :value="'UInteger'">无符号整数</option>
@@ -128,38 +129,39 @@
             <option :value="'Double'">双精度浮点数</option>
             <option :value="'String'">字符串</option>
           </select>
-          <select class="is-radiusless" :class="$style.charset">
-            <option>ASCII</option>
-            <option>GBK</option>
-            <option>UTF-8</option>
+          <select v-model="data.descriptorObj.charset" class="is-radiusless" :class="$style.charset" v-show="data.valueType === 'String'">
+            <option :value="'ASCII'" selected>ASCII</option>
+            <option :value="'GBK'">GBK</option>
+            <option :value="'UTF-8'">UTF-8</option>
           </select>
-          <div :class="$style.readOnly">读写</div>
-          <select class="is-radiusless" :class="$style.dataModelCode">
-            <option :value="1">线圈</option>
-            <option :value="2">离散输入</option>
-            <option :value="3">保持寄存器</option>
-            <option :value="4">输入寄存器</option>
+          <div :class="$style.readOnly" tabindex="-1" @click="onReadOnlyClick($event, data)">{{ data.readOnly ? '只读' : '读写'}}</div>
+          <select v-model="data.descriptorObj.dataModelCode" class="is-radiusless" :class="$style.dataModelCode">
+            <option :value="1" :disabled="data.valueType !== 'Boolean'">线圈</option>
+            <option :value="2" :disabled="!data.readOnly || data.valueType !== 'Boolean'">离散输入</option>
+            <option :value="3" selected>保持寄存器</option>
+            <option :value="4" :disabled="!data.readOnly">输入寄存器</option>
           </select>
-          <div :class="$style.startingAddress" >
-            <input class="is-radiusless" type="number" min="0"/>
+          <div :class="$style.startingAddress">
+            <div :class="$style.tag">地址</div>
+            <input v-model.number="data.descriptorObj.startingAddress"
+                   :name="dataRefName(data.id, 'startingAddress')" :ref="dataRefName(data.id, 'startingAddress')" v-validate="'required|numeric|min_value:0|max_value:65535'"
+                   class="is-radiusless" :class="errors.has(dataRefName(data.id, 'startingAddress')) ? $style.error : null" type="number" min="0"/>
           </div>
-          <div :class="$style.addressCount" @click="$refs['addressCount'].focus()">
-            <input ref="addressCount" class="is-radiusless" type="number" min="0"/>
+          <div :class="$style.addressCount">
+            <div :class="$style.tag">地址个数</div>
+            <input v-model.number="data.descriptorObj.addressCount"
+                   :name="dataRefName(data.id, 'addressCount')" :ref="dataRefName(data.id, 'addressCount')" v-validate="'required|numeric|min_value:1|max_value:128'"
+                   :readonly="data.valueType !== 'String'" class="is-radiusless" :class="errors.has(dataRefName(data.id, 'addressCount')) ? $style.error : null" type="number" min="0"/>
           </div>
-          <div :class="$style.isBit">按位</div>
-          <select class="is-radiusless" :class="$style.bitIndex">
+          <div :class="$style.isBit" tabindex="-1" @click="onIsBitClick($event, data)"
+               v-show="data.valueType === 'Boolean' && data.descriptorObj.dataModelCode !== 1 && data.descriptorObj.dataModelCode !== 2">
+            {{ data.descriptorObj.isBit ? '按位' : '不按位'}}
+          </div>
+          <select v-model.number="data.descriptorObj.bitIndex" class="is-radiusless" :class="$style.bitIndex"
+                  v-show="data.descriptorObj.isBit
+                  && data.valueType === 'Boolean' && data.descriptorObj.dataModelCode !== 1 && data.descriptorObj.dataModelCode !== 2">
             <option v-for="index in 16" :key="index - 1" :value="index - 1">{{ index - 1 }}</option>
           </select>
-        </div>
-        <div>
-          <div>0</div>
-          <div>数据名称</div>
-          <div>数据类型</div>
-          <div>字符集</div>
-          <div>数据模型</div>
-          <div>起始地址</div>
-          <div>地址个数</div>
-          <div>是否按位</div>
         </div>
       </div>
     </div>
@@ -168,9 +170,71 @@
 </template>
 
 <script>
+// TODO
 // 初始化：创建：数据需要指定默认值；修改：初始化descriptorObj为descriptor，同时适用于设备和数据。
 // 提交：需要检查验证状态
-let deviceDebug = JSON.parse('{"name":"接口测试#1","desc":"这里是描述#1","alarmDataIndex":2,"descriptorType":"modbus","descriptorObj":{"isTcp":false,"slaveAddress":1,"allDataCountUpper":64,"allDataByteCountUpper":256,"allFrameCountUpper":16,"frameByteCountUpper":128,"hbIntervalSec":60,"daIntervalSec":120},"datas":[{"name":"进口压力","valueType":"Short","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":0,"addressCount":1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":"UTF-8"}},{"name":"出口压力","valueType":"Short","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":1,"addressCount":1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":"GBK"}},{"name":"电流","valueType":"Short","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":2,"addressCount":1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":null}},{"name":"电流2","valueType":"Long","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":3,"addressCount":1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":null}}]}')
+// 需要设置初始值：data.id, data.descriptorObj.charset
+const gDeviceLoaded = JSON.parse('{"name":"接口测试#1","desc":"这里是描述#1","alarmDataIndex":2,"descriptorType":"modbus","descriptorObj":{"isTcp":false,"slaveAddress":1,"allDataCountUpper":64,"allDataByteCountUpper":256,"allFrameCountUpper":16,"frameByteCountUpper":128,"hbIntervalSec":60,"daIntervalSec":120},"datas":[{"name":"进口压力","valueType":"Short","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":0,"addressCount": 1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":"UTF-8"}},{"name":"出口压力","valueType":"Short","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":1,"addressCount":1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":"GBK"}},{"name":"电流","valueType":"Short","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":2,"addressCount":1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":null}},{"name":"电流2","valueType":"Long","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":3,"addressCount":1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":null}}]}')
+
+/*
+初始化常量
+ */
+const _dataTpl = {
+  id: null,
+  name: '',
+  valueType: 'Short',
+  readOnly: false,
+  descriptorType: 'modbus',
+  descriptorObj: {
+    dataModelCode: 3,
+    startingAddress: 0,
+    addressCount: 1,
+    byteOrder: 'BIG_ENDIAN',
+    isBit: false,
+    bitIndex: 0,
+    charset: 'ASCII'
+  }
+}
+const _deviceTpl = {
+  id: null,
+  name: '',
+  desc: '',
+  alarmDataIndex: -1,
+  descriptorType: 'modbus',
+  descriptorObj: {
+    isTcp: false,
+    slaveAddress: 1,
+    allDataCountUpper: 64,
+    allDataByteCountUpper: 256,
+    allFrameCountUpper: 16,
+    frameByteCountUpper: 128,
+    hbIntervalSec: 60 * 2,
+    daIntervalSec: 60 * 5
+  },
+  datas: []
+}
+
+/*
+初始化设备
+ */
+const _deviceLoaded = gDeviceLoaded
+if (_deviceLoaded && _deviceLoaded.datas) {
+  let i = 0
+  for (const data of _deviceLoaded.datas) {
+    _deviceLoaded.datas[i] = Object.assign({}, _dataTpl, data)
+    i++
+  }
+}
+const _device = Object.assign({}, _deviceTpl, _deviceLoaded)
+
+let _nextDataId = -1
+if (_device.datas) {
+  for (const data of _device.datas) {
+    if (!data.id) {
+      data.id = _nextDataId--
+    }
+  }
+}
 
 // noinspection JSUnusedGlobalSymbols
 export default {
@@ -181,10 +245,11 @@ export default {
       collapsedConnectWay: true,
       collapsedDeviceType: true,
       collapsedDataCfg: false,
-      device: deviceDebug,
+      device: _device,
       alertBeforeUnload: true,
       isCommitting: false,
-      committingErr: ''
+      committingErr: '',
+      nextDataIdValue: _nextDataId
     }
   },
   computed: {
@@ -218,6 +283,11 @@ export default {
         return false
       }
     }
+    if (this.device.datas) {
+      for (const data of this.device.datas) {
+        this.dataCheckAndCorrect(data)
+      }
+    }
   },
   methods: {
     commit () {
@@ -227,12 +297,24 @@ export default {
         let i = 0
         for (const flag of flags) {
           if (!flag) {
-            this.$refs[this.fieldNames[i]].focus()
+            this.collapsedBasicMsg = false
+            this.collapsedConnectWay = false
+            this.collapsedDeviceType = false
+            this.collapsedDataCfg = false
+            const targetOrig = this.$refs[this.fieldNames[i]]
+            const target = Array.isArray(targetOrig) ? targetOrig[0] : targetOrig
+            this.$nextTick().then(() => {
+              target.focus()
+              // noinspection JSUnresolvedFunction
+              // target.scrollIntoViewIfNeeded()
+            })
             return
           }
           i++
         }
         // TODO 提交工作
+        // TODO 调试完成后删除下面的内容
+        this.committingErr = 'OK'
       }).catch((err) => {
         this.committingErr = err.message
       }).finally(() => {
@@ -245,6 +327,79 @@ export default {
         promises.push(this.$validator.validate(field))
       }
       return Promise.all(promises)
+    },
+    nextDataId () {
+      return this.nextDataIdValue--
+    },
+    onIsTcpChange () {
+      if (this.device.descriptorObj.isTcp) {
+        this.device.descriptorObj.slaveAddress = 1
+      }
+    },
+    dataRefName (id, name) {
+      return 'data_' + id + '_' + name
+    },
+    addressCount (valueType) {
+      switch (valueType) {
+        case 'Integer':
+        case 'UInteger':
+        case 'Float':
+          return 2
+        case 'Long':
+        case 'Double':
+          return 4
+        case 'String':
+          return undefined
+        default:
+          return 1
+      }
+    },
+    dataCheckAndCorrect (data) {
+      // 检查和更正数据模型
+      if (data.valueType === 'Boolean') {
+        if (data.readOnly) {
+          // 不更改
+        } else {
+          if (data.descriptorObj.dataModelCode === 2) data.descriptorObj.dataModelCode = 1
+          if (data.descriptorObj.dataModelCode === 4) data.descriptorObj.dataModelCode = 3
+        }
+      } else {
+        if (data.readOnly) {
+          if (data.descriptorObj.dataModelCode === 1 || data.descriptorObj.dataModelCode === 2) data.descriptorObj.dataModelCode = 3
+        } else {
+          data.descriptorObj.dataModelCode = 3
+        }
+      }
+      // 检查和更正字符集
+      if (data.valueType === 'String' && !data.descriptorObj.charset) {
+        data.descriptorObj.charset = 'ASCII'
+      } else {
+        data.descriptorObj.charset = null
+      }
+      if (!(data.descriptorObj.isBit && data.valueType === 'Boolean' &&
+          data.descriptorObj.dataModelCode !== 1 && data.descriptorObj.dataModelCode !== 2)) {
+        data.descriptorObj.bitIndex = -1
+      } else if (data.descriptorObj.bitIndex < 0 || data.descriptorObj.bitIndex > 15) {
+        data.descriptorObj.bitIndex = 0
+      }
+      // 检查和提示个数
+      this.$nextTick().then(() => {
+        this.$validator.validate(this.dataRefName(data.id, 'addressCount'))
+      })
+    },
+    onValueTypeChange (data) {
+      data.descriptorObj.addressCount = this.addressCount(data.valueType)
+      this.dataCheckAndCorrect(data)
+    },
+    onReadOnlyClick (event, data) {
+      event.target.focus()
+      data.readOnly = !data.readOnly
+      this.dataCheckAndCorrect(data)
+    },
+    onIsBitClick (event, data) {
+      event.target.focus()
+      data.descriptorObj.isBit = !data.descriptorObj.isBit
+      this.dataCheckAndCorrect(data)
     }
   }
 }
@@ -432,6 +587,13 @@ export default {
                 border-left: unset !important;
               }
             }
+            .error {
+              background-color: rgba(255, 0, 0, 0.35);
+              &:focus {
+                background-color: rgba(255, 0, 0, 0.5);
+              }
+            }
+            $op-bk-color: rgba(224, 224, 224, 0.38);
             @mixin o-form-minxin {
               font-size: 1rem;
               font-family: inherit;
@@ -440,7 +602,7 @@ export default {
               background-color: unset;
               &:focus {
                 outline: unset;
-                background-color: rgba(224, 224, 224, 0.38);
+                background-color: $op-bk-color;
               }
             }
             input, select {
@@ -463,44 +625,44 @@ export default {
             & > .charset {
               border-left: unset !important;
             }
+            @mixin text-btn-mixin {
+              cursor: default;
+              &:focus {
+                background-color: $op-bk-color;
+                outline: none;
+              }
+            }
             & > .read-only {
+              @include text-btn-mixin;
             }
             & > .data-model-code {
             }
-            & > .starting-address {
+            @mixin label-input-mixin($charCount) {
               position: relative;
               padding: 0;
-              width: 8rem;
-              &::before {
-                content: '地址';
+              & > .tag {
                 position: absolute;
                 left: 0.75rem;
                 line-height: $dataHeight;
+                pointer-events: none;
               }
               & > input {
                 height: 100%;
                 width: 100%;
-                padding: 0 0.75rem 0 calc(2.5rem + 0.75rem);
+                padding: 0 0.75rem 0 calc(#{1.25 * $charCount}rem + 0.75rem);
               }
+            }
+            & > .starting-address {
+              @include label-input-mixin(2);
+              width: 8rem;
             }
             & > .address-count {
-              position: relative;
-              padding: 0;
-              width: 6.5rem;
+              @include label-input-mixin(4);
+              width: 9.5rem;
               border-left: unset !important;
-              &::before {
-                content: '数量';
-                position: absolute;
-                left: 0.75rem;
-                line-height: $dataHeight;
-              }
-              & > input {
-                height: 100%;
-                width: 100%;
-                padding: 0 0.75rem 0 calc(2.5rem + 0.75rem);
-              }
             }
             & > .is-bit {
+              @include text-btn-mixin;
             }
             & > .bit-index {
               border-left: unset !important;
