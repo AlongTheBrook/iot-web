@@ -302,7 +302,7 @@ export default {
     }
   },
   watch: {
-    alarmDataIndex (newValue) {
+    alarmDataIndex () {
       this.device.alarmDataIndex = this.alarmDataIndex
     }
   },
