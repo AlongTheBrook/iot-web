@@ -6,6 +6,7 @@ const path = require('path')
 
 const backendResourcesPath = 'E:/workspace/eclipse-jee/iot-web/src/main/resources'
 process.env.HOST = '0.0.0.0'
+process.env.PORT = 8039
 
 module.exports = {
   backendResourcesPath: backendResourcesPath,

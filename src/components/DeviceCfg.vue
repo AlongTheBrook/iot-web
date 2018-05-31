@@ -113,9 +113,9 @@
         <div>数据配置</div>
         <div :class="$style.tag">数据配置</div>
       </div>
-      <div :class="[$style.body, $style.data]">
+      <draggable v-model="device.datas" :class="[$style.body, $style.data]">
         <div v-for="(data, index) in device.datas" :key="data.id">
-          <div :class="$style.index">{{ index }}</div>
+          <div :class="[$style.index, data.id === alarmDataId ? $style.active : null]">{{ index }}</div>
           <input v-model.trim="data.name" :name="dataRefName(data.id, 'name')" :ref="dataRefName(data.id, 'name')" v-validate="'max:64'"
                  class="is-radiusless" :class="[$style.name, errors.has(dataRefName(data.id, 'name')) ? $style.error : null]" type="text" placeholder="<数据名称>" />
           <select v-model="data.valueType" class="is-radiusless" :class="$style.valueType" @change="onValueTypeChange(data)">
@@ -162,14 +162,34 @@
                   && data.valueType === 'Boolean' && data.descriptorObj.dataModelCode !== 1 && data.descriptorObj.dataModelCode !== 2">
             <option v-for="index in 16" :key="index - 1" :value="index - 1">{{ index - 1 }}</option>
           </select>
+          <div :class="$style.tail">
+            <div :class="$style.delete" @touchstart="true">
+              <svg class="icon" aria-hidden="true">
+                <use xlink:href="#icon-delete"></use>
+              </svg>
+            </div>
+            <div :class="[$style.alarm, data.id === alarmDataId ? $style.active : null]" @touchstart="true"
+                 @click="alarmDataId = data.id">
+              <svg class="icon" aria-hidden="true">
+                <use xlink:href="#icon-alarm"></use>
+              </svg>
+            </div>
+            <div :class="$style.add" @touchstart="true">
+              <svg class="icon" aria-hidden="true">
+                <use xlink:href="#icon-add"></use>
+              </svg>
+            </div>
+          </div>
         </div>
-      </div>
+      </draggable>
     </div>
   </div>
 </div>
 </template>
 
 <script>
+import Draggable from 'vuedraggable'
+
 // TODO
 // 初始化：创建：数据需要指定默认值；修改：初始化descriptorObj为descriptor，同时适用于设备和数据。
 // 提交：需要检查验证状态
@@ -239,6 +259,7 @@ if (_device.datas) {
 // noinspection JSUnusedGlobalSymbols
 export default {
   name: 'device-cfg',
+  components: { Draggable },
   data () {
     return {
       collapsedBasicMsg: true,
@@ -249,7 +270,8 @@ export default {
       alertBeforeUnload: true,
       isCommitting: false,
       committingErr: '',
-      nextDataIdValue: _nextDataId
+      nextDataIdValue: _nextDataId,
+      alarmDataId: -1
     }
   },
   computed: {
@@ -274,6 +296,14 @@ export default {
     },
     isModify () {
       return Boolean(this.device.id)
+    },
+    alarmDataIndex () {
+      return this.device.datas.findIndex(value => value.id === this.alarmDataId)
+    }
+  },
+  watch: {
+    alarmDataIndex (newValue) {
+      this.device.alarmDataIndex = this.alarmDataIndex
     }
   },
   mounted () {
@@ -284,8 +314,13 @@ export default {
       }
     }
     if (this.device.datas) {
+      // 检查纠正数据
       for (const data of this.device.datas) {
         this.dataCheckAndCorrect(data)
+      }
+      // 初始化报警数据ID
+      if (this.device.alarmDataIndex >= 0 && this.device.alarmDataIndex < this.device.datas.length) {
+        this.alarmDataId = this.device.datas[this.device.alarmDataIndex].id
       }
     }
   },
@@ -305,8 +340,6 @@ export default {
             const target = Array.isArray(targetOrig) ? targetOrig[0] : targetOrig
             this.$nextTick().then(() => {
               target.focus()
-              // noinspection JSUnresolvedFunction
-              // target.scrollIntoViewIfNeeded()
             })
             return
           }
@@ -354,7 +387,7 @@ export default {
           return 1
       }
     },
-    dataCheckAndCorrect (data) {
+    dataCheckAndCorrect: function (data) {
       // 检查和更正数据模型
       if (data.valueType === 'Boolean') {
         if (data.readOnly) {
@@ -371,9 +404,10 @@ export default {
         }
       }
       // 检查和更正字符集
-      if (data.valueType === 'String' && !data.descriptorObj.charset) {
-        data.descriptorObj.charset = 'ASCII'
+      if (data.valueType === 'String') {
+        if (!data.descriptorObj.charset) data.descriptorObj.charset = 'ASCII'
       } else {
+        // noinspection JSValidateTypes
         data.descriptorObj.charset = null
       }
       if (!(data.descriptorObj.isBit && data.valueType === 'Boolean' &&
@@ -406,6 +440,9 @@ export default {
 </script>
 
 <style lang="scss" module>
+@import "~bulma/sass/utilities/functions.sass";
+@import "~bulma/sass/utilities/initial-variables.sass";
+
 @mixin text-sle{
   min-width: 0;  // 适配flex-box布局：解决因为不能设置宽度而造成的无效
   white-space: nowrap;
@@ -428,6 +465,19 @@ export default {
     border-color: red;
     &:focus, &:active {
       box-shadow: 0 0.125rem 0 0 rgba(255, 0, 0, 0.25);
+    }
+  }
+}
+
+input, select {
+  //noinspection CssUnknownProperty
+  appearance: none;
+  &[type=number] {
+    -moz-appearance:textfield;
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
     }
   }
 }
@@ -542,7 +592,7 @@ export default {
         display: flex;
         flex-wrap: wrap;
         align-items: flex-start;
-        align-content: center;
+        align-content: stretch;
         & > * {
           flex: 1 1 256px;
           display: flex;
@@ -564,6 +614,7 @@ export default {
           justify-content: flex-start;
           align-items: stretch;
           $dataHeight: 1.75rem;
+          cursor: move;
           & > * {
             flex: auto;
             display: flex;
@@ -583,7 +634,7 @@ export default {
                 flex: none;
                 font-weight: unset;
               }
-              &:nth-child(1), &:nth-child(2) {
+              &:nth-child(1), &:nth-child(2), &:last-child {
                 border-left: unset !important;
               }
             }
@@ -608,6 +659,7 @@ export default {
             input, select {
               @include o-form-minxin;
             }
+            $alarm-color: darken($yellow, 24%);
             & > .index {
               width: $dataHeight;
               background-color: rgba(159, 159, 159, 0.75);
@@ -616,6 +668,10 @@ export default {
               justify-content: center;
               align-items: center;
               cursor: move;
+              user-select: none;
+              &.active {
+                background-color: $alarm-color;
+              }
             }
             & > .name {
               width: 10rem;
@@ -627,7 +683,8 @@ export default {
             }
             @mixin text-btn-mixin {
               cursor: default;
-              &:focus {
+              user-select: none;
+              &:active, &:focus {
                 background-color: $op-bk-color;
                 outline: none;
               }
@@ -666,6 +723,42 @@ export default {
             }
             & > .bit-index {
               border-left: unset !important;
+            }
+            & > .tail {
+              flex: auto;
+              display: flex;
+              height: $dataHeight;
+              padding-right: 0;
+              justify-content: flex-end;
+              align-items: stretch;
+              & > * {
+                flex: none;
+                width: $dataHeight * 1.5;
+                font-size: 1.25rem;
+              }
+              @mixin btn-mixin($hover-color, $active-color) {
+                text-align: center;
+                cursor: pointer;
+                user-select: none;
+                background-color: unset;
+                &:hover {
+                  background-color: $hover-color;
+                  color: findColorInvert($hover-color);
+                }
+                &.active, &:active, &:focus {
+                  background-color: $active-color;
+                  color: findColorInvert($active-color);
+                }
+              }
+              & > .delete {
+                @include btn-mixin($orange, darken($orange, 5%));
+              }
+              & > .alarm {
+                @include btn-mixin(rgba(224, 224, 224, 0.38), $alarm-color);
+              }
+              & > .add {
+                @include btn-mixin($turquoise, darken($turquoise, 5%));
+              }
             }
           }
         }
