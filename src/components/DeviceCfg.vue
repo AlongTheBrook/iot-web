@@ -168,7 +168,7 @@
             <option v-for="index in 16" :key="index - 1" :value="index - 1">{{ index - 1 }}</option>
           </select>
           <div :class="$style.tail">
-            <div :class="$style.delete">
+            <div :class="$style.delete" v-if="isDesktopOrTv" @click="deleteData(index)">
               <svg class="icon" aria-hidden="true">
                 <use xlink:href="#icon-delete"></use>
               </svg>
@@ -179,14 +179,14 @@
                 <use xlink:href="#icon-alarm"></use>
               </svg>
             </div>
-            <div :class="$style.add">
+            <div :class="$style.add" @click="addData(index)">
               <svg class="icon" aria-hidden="true">
                 <use xlink:href="#icon-add"></use>
               </svg>
             </div>
           </div>
-          <div :class="$style.delete" tabindex="-1"
-               :ref="dataRefName(data.id, 'delete')" @blur="onDataTouchBlur(data.id)">删除</div>
+          <div :class="$style.delete" tabindex="-1" :ref="dataRefName(data.id, 'delete')"
+               @blur="onDataTouchBlur(data.id)" @click="deleteData(index)">删除</div>
         </div>
       </draggable>
     </div>
@@ -196,6 +196,13 @@
 
 <script>
 import Draggable from 'vuedraggable'
+import Device from 'device'
+let _isDesktopOrTv = true
+if (navigator && navigator.userAgent) {
+  const device = Device(navigator.userAgent)
+  _isDesktopOrTv = device.type === 'desktop' || device.type === 'tv'
+}
+console.log(_isDesktopOrTv)
 
 // TODO
 // 初始化：创建：数据需要指定默认值；修改：初始化descriptorObj为descriptor，同时适用于设备和数据。
@@ -274,10 +281,12 @@ if (_deviceLoaded && _deviceLoaded.datas) {
   let i = 0
   for (const data of _deviceLoaded.datas) {
     _deviceLoaded.datas[i] = Object.assign({}, _dataTpl(), data)
+    _deviceLoaded.datas[i].descriptorObj = Object.assign({}, _dataTplDescriptorObj(), data.descriptorObj)
     i++
   }
 }
 const _device = Object.assign({}, _deviceTpl(), _deviceLoaded)
+_device.descriptorObj = Object.assign({}, _deviceTplDescriptorObj(), _device.descriptorObj)
 
 let _nextDataId = -1
 if (_device.datas) {
@@ -303,7 +312,8 @@ export default {
       isCommitting: false,
       committingErr: '',
       nextDataIdValue: _nextDataId,
-      alarmDataId: -1
+      alarmDataId: -1,
+      isDesktopOrTv: _isDesktopOrTv
     }
   },
   computed: {
@@ -467,6 +477,46 @@ export default {
       data.descriptorObj.isBit = !data.descriptorObj.isBit
       this.dataCheckAndCorrect(data)
     },
+    deleteData (dataIndex) {
+      this.device.datas.splice(dataIndex, 1)
+    },
+    addData (dataIndex) {
+      this.device.datas.splice(dataIndex + 1, 0, this.newData(this.device.datas[dataIndex]))
+    },
+    newData (tplData) {
+      let data
+      if (tplData) {
+        data = JSON.parse(JSON.stringify(tplData))
+        if (data.descriptorObj.isBit) {
+          if (data.descriptorObj.bitIndex === 15) {
+            data.descriptorObj.bitIndex = 0
+            data.descriptorObj.startingAddress += 1
+          } else {
+            data.descriptorObj.bitIndex += 1
+          }
+        } else {
+          data.descriptorObj.startingAddress += data.descriptorObj.addressCount
+        }
+        if (data.name) {
+          const reg = new RegExp(/\d+$/)
+          if (reg.test(data.name)) {
+            const numStr = reg.exec(data.name)[0]
+            const numAdd = Number(numStr) + 1
+            const numAddStr = this.prefixInteger(numAdd, Math.max(numStr.length, String(numAdd).length))
+            data.name = data.name.replace(reg, numAddStr)
+          } else {
+            data.name = ''
+          }
+        }
+      } else {
+        data = _dataTpl()
+      }
+      data.id = this.nextDataId()
+      return data
+    },
+    prefixInteger (num, len) {
+      return (Array(len).join('0') + num).slice(-len)
+    },
     touchData (dataId) {
       const data = this.device.datas.find(data => data.id === dataId)
       if (data) {
@@ -571,6 +621,9 @@ export default {
     onDataTouchBlur (dataId) {
       this.dataTouchMove(dataId, 0)
       const touchData = this.touchData(dataId)
+      if (!touchData) {
+        return
+      }
       touchData.isExpand = false
       this.clearTouchData(touchData)
     },
