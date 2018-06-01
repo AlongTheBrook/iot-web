@@ -113,9 +113,14 @@
         <div>数据配置</div>
         <div :class="$style.tag">数据配置</div>
       </div>
-      <draggable v-model="device.datas" :class="[$style.body, $style.data]">
-        <div v-for="(data, index) in device.datas" :key="data.id">
-          <div :class="[$style.index, data.id === alarmDataId ? $style.active : null]">{{ index }}</div>
+      <draggable v-model="device.datas" :options="{handle: '.handle', ghostClass: $style.sortableGhost}"
+                 :class="[$style.body, $style.data]">
+        <div v-for="(data, index) in device.datas" :key="data.id" :ref="dataRefName(data.id, '')"
+             @touchstart="onDataTouchStart($event, data.id)"
+             @touchmove="onDataTouchMove($event, data.id)"
+             @touchend="onDataTouchEnd(data.id)">
+          <div class="handle" :class="[$style.index, data.id === alarmDataId ? $style.active : null]"
+               @touchstart="data.touchData.isLock = true" @touchend="data.touchData.isLock = false">{{ index }}</div>
           <input v-model.trim="data.name" :name="dataRefName(data.id, 'name')" :ref="dataRefName(data.id, 'name')" v-validate="'max:64'"
                  class="is-radiusless" :class="[$style.name, errors.has(dataRefName(data.id, 'name')) ? $style.error : null]" type="text" placeholder="<数据名称>" />
           <select v-model="data.valueType" class="is-radiusless" :class="$style.valueType" @change="onValueTypeChange(data)">
@@ -163,23 +168,25 @@
             <option v-for="index in 16" :key="index - 1" :value="index - 1">{{ index - 1 }}</option>
           </select>
           <div :class="$style.tail">
-            <div :class="$style.delete" @touchstart="true">
+            <div :class="$style.delete">
               <svg class="icon" aria-hidden="true">
                 <use xlink:href="#icon-delete"></use>
               </svg>
             </div>
-            <div :class="[$style.alarm, data.id === alarmDataId ? $style.active : null]" @touchstart="true"
+            <div :class="[$style.alarm, data.id === alarmDataId ? $style.selected : null]"
                  @click="alarmDataId = data.id">
               <svg class="icon" aria-hidden="true">
                 <use xlink:href="#icon-alarm"></use>
               </svg>
             </div>
-            <div :class="$style.add" @touchstart="true">
+            <div :class="$style.add">
               <svg class="icon" aria-hidden="true">
                 <use xlink:href="#icon-add"></use>
               </svg>
             </div>
           </div>
+          <div :class="$style.delete" tabindex="-1"
+               :ref="dataRefName(data.id, 'delete')" @blur="onDataTouchBlur(data.id)">删除</div>
         </div>
       </draggable>
     </div>
@@ -199,13 +206,8 @@ const gDeviceLoaded = JSON.parse('{"name":"接口测试#1","desc":"这里是描�
 /*
 初始化常量
  */
-const _dataTpl = {
-  id: null,
-  name: '',
-  valueType: 'Short',
-  readOnly: false,
-  descriptorType: 'modbus',
-  descriptorObj: {
+const _dataTplDescriptorObj = () => {
+  return {
     dataModelCode: 3,
     startingAddress: 0,
     addressCount: 1,
@@ -215,13 +217,30 @@ const _dataTpl = {
     charset: 'ASCII'
   }
 }
-const _deviceTpl = {
-  id: null,
-  name: '',
-  desc: '',
-  alarmDataIndex: -1,
-  descriptorType: 'modbus',
-  descriptorObj: {
+const _dataTplTouchData = () => {
+  return {
+    start: -1,
+    end: -1,
+    isExpand: false,
+    isLock: false,
+    startY: -1,
+    endY: -1,
+    isVertical: undefined
+  }
+}
+const _dataTpl = () => {
+  return {
+    id: null,
+    name: '',
+    valueType: 'Short',
+    readOnly: false,
+    descriptorType: 'modbus',
+    descriptorObj: _dataTplDescriptorObj(),
+    touchData: _dataTplTouchData()
+  }
+}
+const _deviceTplDescriptorObj = () => {
+  return {
     isTcp: false,
     slaveAddress: 1,
     allDataCountUpper: 64,
@@ -230,8 +249,21 @@ const _deviceTpl = {
     frameByteCountUpper: 128,
     hbIntervalSec: 60 * 2,
     daIntervalSec: 60 * 5
-  },
-  datas: []
+  }
+}
+const _deviceTplDatas = () => {
+  return []
+}
+const _deviceTpl = () => {
+  return {
+    id: null,
+    name: '',
+    desc: '',
+    alarmDataIndex: -1,
+    descriptorType: 'modbus',
+    descriptorObj: _deviceTplDescriptorObj(),
+    datas: _deviceTplDatas()
+  }
 }
 
 /*
@@ -241,11 +273,11 @@ const _deviceLoaded = gDeviceLoaded
 if (_deviceLoaded && _deviceLoaded.datas) {
   let i = 0
   for (const data of _deviceLoaded.datas) {
-    _deviceLoaded.datas[i] = Object.assign({}, _dataTpl, data)
+    _deviceLoaded.datas[i] = Object.assign({}, _dataTpl(), data)
     i++
   }
 }
-const _device = Object.assign({}, _deviceTpl, _deviceLoaded)
+const _device = Object.assign({}, _deviceTpl(), _deviceLoaded)
 
 let _nextDataId = -1
 if (_device.datas) {
@@ -434,6 +466,121 @@ export default {
       event.target.focus()
       data.descriptorObj.isBit = !data.descriptorObj.isBit
       this.dataCheckAndCorrect(data)
+    },
+    touchData (dataId) {
+      const data = this.device.datas.find(data => data.id === dataId)
+      if (data) {
+        return data.touchData
+      }
+      return undefined
+    },
+    dataTouchMoveValue (touchData) {
+      if (touchData.start === -1) {
+        return 0
+      }
+      const move = touchData.end - touchData.start
+      if (touchData.isExpand) {
+        if (move <= 0) {
+          return -64
+        }
+        if (move > 64) {
+          return 0
+        }
+        return move - 64
+      } else {
+        if (move >= 0) {
+          return 0
+        }
+        if (move < -64) {
+          return -64
+        }
+        return move
+      }
+    },
+    dataTouchMove (dataId, moveValue) {
+      const transform = moveValue ? `translateX(${moveValue}px)` : ''
+      const children = this.$refs[this.dataRefName(dataId, '')][0].children
+      for (const child of children) {
+        child.style.transform = transform
+      }
+    },
+    dataTouchTransition (dataId, flag) {
+      const transition = flag ? 'transform .5s' : ''
+      const children = this.$refs[this.dataRefName(dataId, '')][0].children
+      for (const child of children) {
+        child.style.transition = transition
+      }
+    },
+    onDataTouchStart (event, dataId) {
+      const touchData = this.touchData(dataId)
+      if (touchData.isLock) {
+        return
+      }
+      this.dataTouchTransition(dataId, false)
+      touchData.start = event.touches[0].clientX
+      touchData.end = touchData.start
+      touchData.startY = event.touches[0].clientY
+      touchData.endY = touchData.startY
+    },
+    onDataTouchMove (event, dataId) {
+      const touchData = this.touchData(dataId)
+      if (touchData.isVertical) {
+        return
+      }
+      if (touchData.isVertical === false) {
+        event.preventDefault()
+      }
+      if (touchData.start === -1) {
+        return
+      }
+      touchData.end = event.touches[0].clientX
+      touchData.endY = event.touches[0].clientY
+      const moveValue = this.dataTouchMoveValue(touchData)
+      if (moveValue) {
+        if (touchData.isVertical === undefined) {
+          const moveValueY = touchData.endY - touchData.startY
+          // noinspection JSSuspiciousNameCombination
+          if (Math.abs(moveValueY) > Math.abs(moveValue)) {
+            touchData.isVertical = true
+            return
+          } else {
+            touchData.isVertical = false
+          }
+        }
+        this.dataTouchMove(dataId, moveValue)
+      }
+    },
+    onDataTouchEnd (dataId) {
+      const touchData = this.touchData(dataId)
+      if (touchData.start === -1) {
+        this.clearTouchData(touchData)
+        return
+      }
+      this.dataTouchTransition(dataId, true)
+      if (this.dataTouchMoveValue(touchData) <= -32) {
+        this.dataTouchMove(dataId, -64)
+        this.$refs[this.dataRefName(dataId, 'delete')][0].focus()
+        touchData.isExpand = true
+      } else {
+        this.dataTouchMove(dataId, 0)
+        this.$refs[this.dataRefName(dataId, 'delete')][0].blur()
+        touchData.isExpand = false
+      }
+      this.clearTouchData(touchData)
+    },
+    onDataTouchBlur (dataId) {
+      this.dataTouchMove(dataId, 0)
+      const touchData = this.touchData(dataId)
+      touchData.isExpand = false
+      this.clearTouchData(touchData)
+    },
+    clearTouchData (touchData) {
+      touchData.start = -1
+      touchData.end = -1
+      touchData.startY = -1
+      touchData.endY = -1
+      touchData.isLock = false
+      touchData.isVertical = undefined
     }
   }
 }
@@ -509,6 +656,10 @@ input, select {
 
 .inputGroup {
   display: flex;
+}
+
+.sortable-ghost {
+  opacity: 0;
 }
 
 .module {
@@ -614,7 +765,6 @@ input, select {
           justify-content: flex-start;
           align-items: stretch;
           $dataHeight: 1.75rem;
-          cursor: move;
           & > * {
             flex: auto;
             display: flex;
@@ -624,6 +774,8 @@ input, select {
             padding: 0;
             margin: 0.25rem;
             background-color: rgba(224, 224, 224, 0.26);
+            position: relative;
+            overflow: hidden;
             & > * {
               flex: none;
               padding: 0 0.75rem;
@@ -745,7 +897,7 @@ input, select {
                   background-color: $hover-color;
                   color: findColorInvert($hover-color);
                 }
-                &.active, &:active, &:focus {
+                &.selected, &:active, &:focus {
                   background-color: $active-color;
                   color: findColorInvert($active-color);
                 }
@@ -759,6 +911,20 @@ input, select {
               & > .add {
                 @include btn-mixin($turquoise, darken($turquoise, 5%));
               }
+            }
+            & > .delete {
+              $width: 64px;
+              position: absolute;
+              top: 0;
+              right: -$width;
+              width: $width;
+              height: 100%;
+              background-color: $orange;
+              color: white;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              user-select: none;
             }
           }
         }
