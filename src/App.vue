@@ -1,11 +1,11 @@
 <template>
-  <div id="app" :class="isDesktopOrTv ? 'is-desktop-or-tv' : null">
-    <device-cfg :is-desktop-or-tv="isDesktopOrTv" />
+  <div id="app" :class="userAgent.isDesktopOrTv ? 'is-desktop-or-tv' : null">
+    <device-cfg :user-agent="userAgent" />
   </div>
 </template>
 
 <script>
-import device from './external/device'
+import userAgent from './external/userAgent'
 import DeviceCfg from './components/DeviceCfg'
 // noinspection JSUnresolvedFunction
 require('./external/iconfont')
@@ -15,7 +15,7 @@ export default {
   name: 'App',
   data () {
     return {
-      isDesktopOrTv: device.isDesktopOrTv
+      userAgent: userAgent
     }
   }
 }

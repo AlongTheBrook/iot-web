@@ -3,7 +3,7 @@
 <div :class="$style.module">
   <div :class="$style.title">
     <div>
-      <div>{{ isModify ? '修改设备' : '创建设备'}}</div>
+      <div>{{ isModify ? '修改设备' : '创建设备' }}</div>
       <a class="button is-primary is-radiusless" :class="{'is-loading': isCommitting}" :disabled="isCommitting" @click="commit">{{ isModify ? '修改设备' : '创建设备' }}</a>
     </div>
     <div :class="$style.error" v-if="committingErr">{{ committingErr }}</div>
@@ -168,7 +168,7 @@
             <option v-for="index in 16" :key="index - 1" :value="index - 1">{{ index - 1 }}</option>
           </select>
           <div :class="$style.tail">
-            <div :class="$style.delete" v-if="isDesktopOrTv" @click="deleteData(index)">
+            <div :class="$style.delete" v-if="userAgent.isDesktopOrTv" @click="deleteData(index)">
               <svg class="icon" aria-hidden="true">
                 <use xlink:href="#icon-delete"></use>
               </svg>
@@ -201,7 +201,7 @@ import Draggable from 'vuedraggable'
 // 初始化：创建：数据需要指定默认值；修改：初始化descriptorObj为descriptor，同时适用于设备和数据。
 // 提交：需要检查验证状态
 // 需要设置初始值：data.id, data.descriptorObj.charset
-const gDeviceLoaded = JSON.parse('{"name":"接口测试#1","desc":"这里是描述#1","alarmDataIndex":2,"descriptorType":"modbus","descriptorObj":{"isTcp":false,"slaveAddress":1,"allDataCountUpper":64,"allDataByteCountUpper":256,"allFrameCountUpper":16,"frameByteCountUpper":128,"hbIntervalSec":60,"daIntervalSec":120},"datas":[{"name":"进口压力","valueType":"Short","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":0,"addressCount": 1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":"UTF-8"}},{"name":"出口压力","valueType":"Short","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":1,"addressCount":1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":"GBK"}},{"name":"电流","valueType":"Short","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":2,"addressCount":1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":null}},{"name":"电流2","valueType":"Long","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":3,"addressCount":1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":null}}]}')
+const gDeviceLoaded = undefined // JSON.parse('{"name":"接口测试#1","desc":"这里是描述#1","alarmDataIndex":2,"descriptorType":"modbus","descriptorObj":{"isTcp":false,"slaveAddress":1,"allDataCountUpper":64,"allDataByteCountUpper":256,"allFrameCountUpper":16,"frameByteCountUpper":128,"hbIntervalSec":60,"daIntervalSec":120},"datas":[{"name":"进口压力","valueType":"Short","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":0,"addressCount": 1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":"UTF-8"}},{"name":"出口压力","valueType":"Short","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":1,"addressCount":1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":"GBK"}},{"name":"电流","valueType":"Short","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":2,"addressCount":1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":null}},{"name":"电流2","valueType":"Long","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":3,"addressCount":1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":null}}]}')
 
 /*
 初始化常量
@@ -252,7 +252,7 @@ const _deviceTplDescriptorObj = () => {
   }
 }
 const _deviceTplDatas = () => {
-  return []
+  return [_dataTpl()]
 }
 const _deviceTpl = () => {
   return {
@@ -295,23 +295,23 @@ export default {
   name: 'device-cfg',
   components: { Draggable },
   props: {
-    isDesktopOrTv: {
-      type: Boolean,
+    userAgent: {
+      type: Object,
       required: true
     }
   },
   data () {
     return {
-      collapsedBasicMsg: !this.isDesktopOrTv,
-      collapsedConnectWay: !this.isDesktopOrTv,
-      collapsedDeviceType: !this.isDesktopOrTv,
-      collapsedDataCfg: !this.isDesktopOrTv,
+      collapsedBasicMsg: !this.userAgent.isDesktopOrTv,
+      collapsedConnectWay: !this.userAgent.isDesktopOrTv,
+      collapsedDeviceType: !this.userAgent.isDesktopOrTv,
+      collapsedDataCfg: !this.userAgent.isDesktopOrTv,
       device: _device,
       alertBeforeUnload: true,
       isCommitting: false,
       committingErr: '',
       nextDataIdValue: _nextDataId,
-      alarmDataId: -1
+      alarmDataId: 0
     }
   },
   computed: {
@@ -380,6 +380,10 @@ export default {
             const target = Array.isArray(targetOrig) ? targetOrig[0] : targetOrig
             this.$nextTick().then(() => {
               target.focus()
+              if (this.userAgent.isIOS) { // IOS下，focus事件必须由用户输入发起；或者调用代码处于用户输入发起的调用栈中：否则不生效
+                // noinspection JSUnresolvedFunction
+                target.scrollIntoViewIfNeeded()
+              }
             })
             return
           }
@@ -476,6 +480,9 @@ export default {
       this.dataCheckAndCorrect(data)
     },
     deleteData (dataIndex) {
+      if (this.device.datas.length <= 1) {
+        return
+      }
       this.device.datas.splice(dataIndex, 1)
     },
     addData (dataIndex) {
