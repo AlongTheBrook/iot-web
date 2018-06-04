@@ -89,8 +89,8 @@
           <div>从站地址</div>
           <div>
             <input v-model.number="device.descriptorObj.slaveAddress" name="从站地址" ref="从站地址"
-              class="input is-small is-radiusless" :class="[$style.input, errors.has('从站地址') ? $style.error : null]" type="number" placeholder=""
-              v-validate="'required|numeric|min_value:1|max_value:255'">
+                   class="input is-small is-radiusless" :class="[$style.input, errors.has('从站地址') ? $style.error : null]" type="number" placeholder=""
+                   v-validate="'required|numeric|min_value:1|max_value:255'">
             <div v-show="errors.has('从站地址')" :class="$style.error">{{ errors.first('从站地址') }}</div>
           </div>
         </div>
@@ -99,8 +99,8 @@
           <div>
             <div :class="$style.inputGroup">
               <input v-model.number="daIntervalMinu" name="数采间隔" ref="数采间隔"
-                class="input is-small is-radiusless" :class="[$style.input, errors.has('数采间隔') ? $style.error : null]" type="number" min="1" placeholder=""
-                v-validate="'required|numeric|min_value:1|max_value:60'">
+                     class="input is-small is-radiusless" :class="[$style.input, errors.has('数采间隔') ? $style.error : null]" type="number" min="1" placeholder=""
+                     v-validate="'required|numeric|min_value:1|max_value:60'">
               <div>分</div>
             </div>
             <div v-show="errors.has('数采间隔')" :class="$style.error">{{ errors.first('数采间隔') }}</div>
@@ -196,13 +196,6 @@
 
 <script>
 import Draggable from 'vuedraggable'
-import Device from 'device'
-let _isDesktopOrTv = true
-if (navigator && navigator.userAgent) {
-  const device = Device(navigator.userAgent)
-  _isDesktopOrTv = device.type === 'desktop' || device.type === 'tv'
-}
-console.log(_isDesktopOrTv)
 
 // TODO
 // 初始化：创建：数据需要指定默认值；修改：初始化descriptorObj为descriptor，同时适用于设备和数据。
@@ -301,19 +294,24 @@ if (_device.datas) {
 export default {
   name: 'device-cfg',
   components: { Draggable },
+  props: {
+    isDesktopOrTv: {
+      type: Boolean,
+      required: true
+    }
+  },
   data () {
     return {
-      collapsedBasicMsg: true,
-      collapsedConnectWay: true,
-      collapsedDeviceType: true,
-      collapsedDataCfg: false,
+      collapsedBasicMsg: !this.isDesktopOrTv,
+      collapsedConnectWay: !this.isDesktopOrTv,
+      collapsedDeviceType: !this.isDesktopOrTv,
+      collapsedDataCfg: !this.isDesktopOrTv,
       device: _device,
       alertBeforeUnload: true,
       isCommitting: false,
       committingErr: '',
       nextDataIdValue: _nextDataId,
-      alarmDataId: -1,
-      isDesktopOrTv: _isDesktopOrTv
+      alarmDataId: -1
     }
   },
   computed: {
@@ -719,11 +717,12 @@ input, select {
   width: 100%;
   & > * {
     background-color: white;
-    margin-bottom: 0.5rem;
   }
+  $border-color: rgba(197, 197, 197, 0.44);
   & > .title {
     width: 100%;
     padding: 0.5rem;
+    margin-bottom: 0.5rem;
     & > :first-child {
       display: flex;
       align-items: center;
@@ -734,12 +733,13 @@ input, select {
       text-align: right;
       margin-top: 0.4rem;
     }
+    box-shadow: 0 0 2px $border-color;
   }
   & > .content {
     & > .block {
+      background-color: white;
       position: relative;
       padding: 0.5rem;
-      $border-color: rgba(197, 197, 197, 0.44);
       &:first-child::before {
         content: '';
         display: block;

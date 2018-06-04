@@ -1,15 +1,23 @@
 <template>
-  <div id="app">
-    <router-view/>
+  <div id="app" :class="isDesktopOrTv ? 'is-desktop-or-tv' : null">
+    <device-cfg :is-desktop-or-tv="isDesktopOrTv" />
   </div>
 </template>
 
 <script>
+import device from './external/device'
+import DeviceCfg from './components/DeviceCfg'
 // noinspection JSUnresolvedFunction
 require('./external/iconfont')
 
 export default {
-  name: 'App'
+  components: {DeviceCfg},
+  name: 'App',
+  data () {
+    return {
+      isDesktopOrTv: device.isDesktopOrTv
+    }
+  }
 }
 </script>
 
@@ -18,15 +26,14 @@ export default {
 
 html {
   background-color: #ecf0f5;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);  // 去除移动端点击操作出现的灰色快
 }
 
 #app {
   width: 100%;
-  max-width: 1136px;
+  /*max-width: 1136px;*/
   /*border: solid 1px rgba(197, 197, 197, 0.44);*/
   /*font-family: 'Avenir', Helvetica, Arial, sans-serif;*/
   font-family: BlinkMacSystemFont, -apple-system, "Microsoft Yahei", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
@@ -34,6 +41,10 @@ html {
   -moz-osx-font-smoothing: grayscale;
   /*text-align: center;*/
   color: #2c3e50;
+}
+
+.is-desktop-or-tv {
+  padding: 0.5rem;
 }
 
 .icon {
