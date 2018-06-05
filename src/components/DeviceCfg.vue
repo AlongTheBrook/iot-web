@@ -144,8 +144,7 @@
             <span @click.stop
                   v-tooltip="{trigger: 'click', placement: 'bottom-start',
                   content: '设备数据的个数'
-                  + '<br/>1 因控制规模，不可超过上限'
-                  + '<br/>2 减少数据个数有助于提升通讯性能'}">
+                  + '<br/>注意：减少数据个数有助于提升通讯性能'}">
               <svg class="icon" aria-hidden="true">
                 <use xlink:href="#icon-info"></use>
               </svg>
@@ -156,9 +155,10 @@
             <span>报警</span>
             <span @click.stop
                   v-tooltip="{trigger: 'click', placement: 'bottom-start',
-                  content: '设备报警关联的数据序号'
-                  + '<br/>1 只能关联整数类型的数据，亦可不关联'
-                  + '<br/>2 含义通过“报警编码”页的配置来解析'
+                  content: '设备报警关联的数据的序号'
+                  + '<br/>1 可以不关联（即不使用此功能），关联后亦可以取消'
+                  + '<br/>2 只能关联整数类型的数据'
+                  + '<br/>2 通过“报警编码”页的配置来解析出含义'
                   + '<br/>3 数据的值为0表示无报警'}">
               <svg class="icon" aria-hidden="true">
                 <use xlink:href="#icon-info"></use>
@@ -171,8 +171,7 @@
             <span @click.stop
                   v-tooltip="{trigger: 'click', placement: 'bottom-start',
                   content: '设备所有数据的字节长度之和'
-                  + '<br/>1 因控制规模，不可超过上限'
-                  + '<br/>2 减少字节长度有助于提升通讯性能'}">
+                  + '<br/>注意：减少字节长度有助于提升通讯性能'}">
               <svg class="icon" aria-hidden="true">
                 <use xlink:href="#icon-info"></use>
               </svg>
