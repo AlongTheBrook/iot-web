@@ -23,6 +23,7 @@ export default {
 
 <style lang="scss">
 @import '~bulma';
+@import './style/tooltip.scss';
 
 html {
   background-color: #ecf0f5;

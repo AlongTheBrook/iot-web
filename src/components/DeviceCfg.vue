@@ -59,7 +59,7 @@
           <div>
             <div :class="$style.inputGroup">
               <input v-model.number="hbIntervalMinu" name="心跳周期" ref="心跳周期"
-                     class="input is-small is-radiusless" :class="[$style.input, errors.has('心跳周期') ? $style.error : null]" type="number" min="1" placeholder=""
+                     class="input is-small is-radiusless" :class="[$style.input, errors.has('心跳周期') ? $style.error : null]" type="number" placeholder=""
                      v-validate="'required|numeric|min_value:1|max_value:60'">
               <div>分</div>
             </div>
@@ -99,11 +99,33 @@
           <div>
             <div :class="$style.inputGroup">
               <input v-model.number="daIntervalMinu" name="数采间隔" ref="数采间隔"
-                     class="input is-small is-radiusless" :class="[$style.input, errors.has('数采间隔') ? $style.error : null]" type="number" min="1" placeholder=""
+                     class="input is-small is-radiusless" :class="[$style.input, errors.has('数采间隔') ? $style.error : null]" type="number" placeholder=""
                      v-validate="'required|numeric|min_value:1|max_value:60'">
               <div>分</div>
             </div>
             <div v-show="errors.has('数采间隔')" :class="$style.error">{{ errors.first('数采间隔') }}</div>
+          </div>
+        </div>
+        <div>
+          <div>
+            最大帧长
+            <span v-tooltip="{trigger: 'click', placement: 'bottom-start',
+                  content: '设备能接受请求或者回复响应的帧的最大长度'
+                  + '<br/>注意：设置设备支持的最大值有利于提高性能'
+                  + '<br/>帧：通讯过程中单次请求或响应的数据'}">
+              <svg class="icon" aria-hidden="true">
+                <use xlink:href="#icon-info"></use>
+              </svg>
+            </span>
+          </div>
+          <div>
+            <div :class="$style.inputGroup">
+              <input v-model.number="device.descriptorObj.frameByteCountUpper" name="最大帧长" ref="最大帧长"
+                     class="input is-small is-radiusless" :class="[$style.input, errors.has('最大帧长') ? $style.error : null]" type="number" placeholder=""
+                     v-validate="'required|numeric|min_value:32|max_value:128'">
+              <div :class="$style.unit">字节</div>
+            </div>
+            <div v-show="errors.has('最大帧长')" :class="$style.error">{{ errors.first('最大帧长') }}</div>
           </div>
         </div>
       </div>
@@ -111,7 +133,53 @@
     <div :class="[$style.block, collapsedDataCfg ? $style.collapsed : null]">
       <div :class="$style.head" @click="collapsedDataCfg = !collapsedDataCfg">
         <div>数据配置</div>
-        <div :class="$style.tag">数据配置</div>
+        <div :class="$style.tag">
+          <span>数据:</span>
+          <span @click.stop
+                v-tooltip="{trigger: 'click', placement: 'bottom-start',
+                  content: '设备数据的个数'
+                  + '<br/>1 因控制规模，不可超过上限'
+                  + '<br/>2 减少数据个数有助于提升通讯性能'}">
+              <svg class="icon" aria-hidden="true">
+                <use xlink:href="#icon-info"></use>
+              </svg>
+          </span><span>:</span>
+          <span>{{ this.device.datas.length }}</span>/<span>{{ this.device.descriptorObj.allDataCountUpper }}</span> &nbsp;
+          <span>报警</span>
+          <span @click.stop
+                v-tooltip="{trigger: 'click', placement: 'bottom-start',
+                  content: '设备报警关联的数据序号'
+                  + '<br/>1 只能关联整数类型的数据，亦可不关联'
+                  + '<br/>2 含义通过“报警编码”的配置来解析'
+                  + '<br/>3 数据的值为0表示无报警'}">
+              <svg class="icon" aria-hidden="true">
+                <use xlink:href="#icon-info"></use>
+              </svg>
+          </span><span>:</span>
+          <span>{{ alarmDataIndex === -1 ? '无' : alarmDataIndex }}</span>&nbsp;
+          <span>字节</span>
+          <span @click.stop
+                v-tooltip="{trigger: 'click', placement: 'bottom-start',
+                  content: '设备所有数据的字节长度之和'
+                  + '<br/>1 因控制规模，不可超过上限'
+                  + '<br/>2 减少字节长度有助于提升通讯性能'}">
+              <svg class="icon" aria-hidden="true">
+                <use xlink:href="#icon-info"></use>
+              </svg>
+          </span><span>:</span>
+          <span>{{ '-' }}</span>/<span>{{ this.device.descriptorObj.allDataByteCountUpper }}</span> &nbsp;
+          <span>帧数</span>
+          <span @click.stop
+                v-tooltip="{trigger: 'click', placement: 'bottom-start',
+                  content: '设备所有数据更新一次所需要的请求帧数'
+                  + '<br/>注意：帧数对通讯性能的影响尤为明显'
+                  + '<br/>建议：尽可能使数据的地址连续以减少帧数'}">
+              <svg class="icon" aria-hidden="true">
+                <use xlink:href="#icon-info"></use>
+              </svg>
+          </span><span>:</span>
+          <span>{{ '-' }}</span>/<span>{{ this.device.descriptorObj.allFrameCountUpper }}</span>
+        </div>
       </div>
       <draggable v-model="device.datas" :options="{handle: '.handle', ghostClass: $style.sortableGhost}"
                  :class="[$style.body, $style.data]">
@@ -174,7 +242,7 @@
               </svg>
             </div>
             <div :class="[$style.alarm, data.id === alarmDataId ? $style.selected : null]"
-                 @click="alarmDataId = data.id">
+                 @click="onAlarmClick(data.id)">
               <svg class="icon" aria-hidden="true">
                 <use xlink:href="#icon-alarm"></use>
               </svg>
@@ -486,6 +554,9 @@ export default {
       this.device.datas.splice(dataIndex, 1)
     },
     addData (dataIndex) {
+      if (this.device.datas.length >= this.device.descriptorObj.allDataCountUpper) {
+        return
+      }
       this.device.datas.splice(dataIndex + 1, 0, this.newData(this.device.datas[dataIndex]))
     },
     newData (tplData) {
@@ -521,6 +592,13 @@ export default {
     },
     prefixInteger (num, len) {
       return (Array(len).join('0') + num).slice(-len)
+    },
+    onAlarmClick (dataId) {
+      if (this.alarmDataId === dataId) {
+        this.alarmDataId = 0
+        return
+      }
+      this.alarmDataId = dataId
     },
     touchData (dataId) {
       const data = this.device.datas.find(data => data.id === dataId)
@@ -714,6 +792,9 @@ input, select {
 
 .inputGroup {
   display: flex;
+  & > .unit {
+    flex: none;
+  }
 }
 
 .sortable-ghost {

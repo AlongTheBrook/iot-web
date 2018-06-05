@@ -16,6 +16,7 @@
   "dependencies": {
     "bulma": "^0.7.1",
     "device": "^0.3.9",
+    "v-tooltip": "^2.0.0-rc.32",
     "vee-validate": "^2.0.9",
     "vue": "^2.5.2",
     "vuedraggable": "^2.16.0",
