@@ -431,7 +431,7 @@ export default {
        */
       const set = [new Set(), new Set(), new Set(), new Set()]
       for (const data of this.device.datas) {
-        if (!Number.isNaN(data.descriptorObj.addressCount)) {
+        if (Number.isInteger(data.descriptorObj.startingAddress) && Number.isInteger(data.descriptorObj.addressCount)) {
           for (let i = 0; i < data.descriptorObj.addressCount; i++) {
             set[data.descriptorObj.dataModelCode - 1].add(data.descriptorObj.startingAddress + i)
           }
