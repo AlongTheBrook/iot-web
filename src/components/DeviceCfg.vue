@@ -52,7 +52,7 @@
             </div>
           </div>
         </div>
-        <div><div>注册包</div><div><input v-model="device.accessCode" class="input is-small is-radiusless" :class="$style.input" type="text" placeholder="<与入码相同>" readonly></div></div>
+        <div><div>注册包</div><div><input v-model="device.accessCode" class="input is-small is-radiusless" :class="$style.input" type="text" placeholder="<与接入码相同>" readonly></div></div>
         <div><div>心跳包</div><div><input class="input is-small is-radiusless" :class="$style.input" type="text" placeholder="" value="H" readonly></div></div>
         <div>
           <div>心跳周期</div>
@@ -134,9 +134,15 @@
       <div :class="$style.head" @click="collapsedDataCfg = !collapsedDataCfg">
         <div>数据配置</div>
         <div :class="$style.tag">
-          <span>数据:</span>
-          <span @click.stop
-                v-tooltip="{trigger: 'click', placement: 'bottom-start',
+          {{ this.device.datas.length }}
+        </div>
+      </div>
+      <div :class="[$style.body, $style.data]">
+        <div :class="$style.stat">
+          <div>
+            <span>数据</span>
+            <span @click.stop
+                  v-tooltip="{trigger: 'click', placement: 'bottom-start',
                   content: '设备数据的个数'
                   + '<br/>1 因控制规模，不可超过上限'
                   + '<br/>2 减少数据个数有助于提升通讯性能'}">
@@ -144,22 +150,26 @@
                 <use xlink:href="#icon-info"></use>
               </svg>
           </span><span>:</span>
-          <span>{{ this.device.datas.length }}</span>/<span>{{ this.device.descriptorObj.allDataCountUpper }}</span> &nbsp;
-          <span>报警</span>
-          <span @click.stop
-                v-tooltip="{trigger: 'click', placement: 'bottom-start',
+            <span>{{ this.device.datas.length }}</span>/<span>{{ this.device.descriptorObj.allDataCountUpper }}</span>
+          </div>
+          <div>
+            <span>报警</span>
+            <span @click.stop
+                  v-tooltip="{trigger: 'click', placement: 'bottom-start',
                   content: '设备报警关联的数据序号'
                   + '<br/>1 只能关联整数类型的数据，亦可不关联'
-                  + '<br/>2 含义通过“报警编码”的配置来解析'
+                  + '<br/>2 含义通过“报警编码”页的配置来解析'
                   + '<br/>3 数据的值为0表示无报警'}">
               <svg class="icon" aria-hidden="true">
                 <use xlink:href="#icon-info"></use>
               </svg>
           </span><span>:</span>
-          <span>{{ alarmDataIndex === -1 ? '无' : alarmDataIndex }}</span>&nbsp;
-          <span>字节</span>
-          <span @click.stop
-                v-tooltip="{trigger: 'click', placement: 'bottom-start',
+            <span>{{ alarmDataIndex === -1 ? '无' : alarmDataIndex }}</span>
+          </div>
+          <div>
+            <span>字节</span>
+            <span @click.stop
+                  v-tooltip="{trigger: 'click', placement: 'bottom-start',
                   content: '设备所有数据的字节长度之和'
                   + '<br/>1 因控制规模，不可超过上限'
                   + '<br/>2 减少字节长度有助于提升通讯性能'}">
@@ -167,10 +177,12 @@
                 <use xlink:href="#icon-info"></use>
               </svg>
           </span><span>:</span>
-          <span>{{ '-' }}</span>/<span>{{ this.device.descriptorObj.allDataByteCountUpper }}</span> &nbsp;
-          <span>帧数</span>
-          <span @click.stop
-                v-tooltip="{trigger: 'click', placement: 'bottom-start',
+            <span>{{ '-' }}</span>/<span>{{ this.device.descriptorObj.allDataByteCountUpper }}</span>
+          </div>
+          <div>
+            <span>帧数</span>
+            <span @click.stop
+                  v-tooltip="{trigger: 'click', placement: 'bottom-start',
                   content: '设备所有数据更新一次所需要的请求帧数'
                   + '<br/>注意：帧数对通讯性能的影响尤为明显'
                   + '<br/>建议：尽可能使数据的地址连续以减少帧数'}">
@@ -178,85 +190,86 @@
                 <use xlink:href="#icon-info"></use>
               </svg>
           </span><span>:</span>
-          <span>{{ '-' }}</span>/<span>{{ this.device.descriptorObj.allFrameCountUpper }}</span>
+            <span>{{ '-' }}</span>/<span>{{ this.device.descriptorObj.allFrameCountUpper }}</span>
+          </div>
         </div>
-      </div>
-      <draggable v-model="device.datas" :options="{handle: '.handle', ghostClass: $style.sortableGhost}"
-                 :class="[$style.body, $style.data]">
-        <div v-for="(data, index) in device.datas" :key="data.id" :ref="dataRefName(data.id, '')"
-             @touchstart="onDataTouchStart($event, data.id)"
-             @touchmove="onDataTouchMove($event, data.id)"
-             @touchend="onDataTouchEnd(data.id)">
-          <div class="handle" :class="[$style.index, data.id === alarmDataId ? $style.active : null]"
-               @touchstart="data.touchData.isLock = true" @touchend="data.touchData.isLock = false">{{ index }}</div>
-          <input v-model.trim="data.name" :name="dataRefName(data.id, 'name')" :ref="dataRefName(data.id, 'name')" v-validate="'max:64'"
-                 class="is-radiusless" :class="[$style.name, errors.has(dataRefName(data.id, 'name')) ? $style.error : null]" type="text" placeholder="<数据名称>" />
-          <select v-model="data.valueType" class="is-radiusless" :class="$style.valueType" @change="onValueTypeChange(data)">
-            <option :value="'Boolean'">开关量</option>
-            <option :value="'Short'" selected>短整数</option>
-            <option :value="'UShort'">无符号短整数</option>
-            <option :value="'Integer'">整数</option>
-            <option :value="'UInteger'">无符号整数</option>
-            <option :value="'Long'">长整数</option>
-            <option :value="'Float'">浮点数</option>
-            <option :value="'Double'">双精度浮点数</option>
-            <option :value="'String'">字符串</option>
-          </select>
-          <select v-model="data.descriptorObj.charset" class="is-radiusless" :class="$style.charset" v-show="data.valueType === 'String'">
-            <option :value="'ASCII'" selected>ASCII</option>
-            <option :value="'GBK'">GBK</option>
-            <option :value="'UTF-8'">UTF-8</option>
-          </select>
-          <div :class="$style.readOnly" tabindex="-1" @click="onReadOnlyClick($event, data)">{{ data.readOnly ? '只读' : '读写'}}</div>
-          <select v-model="data.descriptorObj.dataModelCode" class="is-radiusless" :class="$style.dataModelCode">
-            <option :value="1" :disabled="data.valueType !== 'Boolean'">线圈</option>
-            <option :value="2" :disabled="!data.readOnly || data.valueType !== 'Boolean'">离散输入</option>
-            <option :value="3" selected>保持寄存器</option>
-            <option :value="4" :disabled="!data.readOnly">输入寄存器</option>
-          </select>
-          <div :class="$style.startingAddress">
-            <div :class="$style.tag">地址</div>
-            <input v-model.number="data.descriptorObj.startingAddress"
-                   :name="dataRefName(data.id, 'startingAddress')" :ref="dataRefName(data.id, 'startingAddress')" v-validate="'required|numeric|min_value:0|max_value:65535'"
-                   class="is-radiusless" :class="errors.has(dataRefName(data.id, 'startingAddress')) ? $style.error : null" type="number" min="0"/>
-          </div>
-          <div :class="$style.addressCount">
-            <div :class="$style.tag">地址个数</div>
-            <input v-model.number="data.descriptorObj.addressCount"
-                   :name="dataRefName(data.id, 'addressCount')" :ref="dataRefName(data.id, 'addressCount')" v-validate="'required|numeric|min_value:1|max_value:128'"
-                   :readonly="data.valueType !== 'String'" class="is-radiusless" :class="errors.has(dataRefName(data.id, 'addressCount')) ? $style.error : null" type="number" min="0"/>
-          </div>
-          <div :class="$style.isBit" tabindex="-1" @click="onIsBitClick($event, data)"
-               v-show="data.valueType === 'Boolean' && data.descriptorObj.dataModelCode !== 1 && data.descriptorObj.dataModelCode !== 2">
-            {{ data.descriptorObj.isBit ? '按位' : '不按位'}}
-          </div>
-          <select v-model.number="data.descriptorObj.bitIndex" class="is-radiusless" :class="$style.bitIndex"
-                  v-show="data.descriptorObj.isBit
+        <draggable v-model="device.datas" :options="{handle: '.handle', ghostClass: $style.sortableGhost}"
+                   :class="$style.dataList">
+          <div v-for="(data, index) in device.datas" :key="data.id" :ref="dataRefName(data.id, '')"
+               @touchstart="onDataTouchStart($event, data.id)"
+               @touchmove="onDataTouchMove($event, data.id)"
+               @touchend="onDataTouchEnd(data.id)">
+            <div class="handle" :class="[$style.index, data.id === alarmDataId ? $style.active : null]"
+                 @touchstart="data.touchData.isLock = true" @touchend="data.touchData.isLock = false">{{ index }}</div>
+            <input v-model.trim="data.name" :name="dataRefName(data.id, 'name')" :ref="dataRefName(data.id, 'name')" v-validate="'max:64'"
+                   class="is-radiusless" :class="[$style.name, errors.has(dataRefName(data.id, 'name')) ? $style.error : null]" type="text" placeholder="<数据名称>" />
+            <select v-model="data.valueType" class="is-radiusless" :class="$style.valueType" @change="onValueTypeChange(data)">
+              <option :value="'Boolean'">开关量</option>
+              <option :value="'Short'" selected>短整数</option>
+              <option :value="'UShort'">无符号短整数</option>
+              <option :value="'Integer'">整数</option>
+              <option :value="'UInteger'">无符号整数</option>
+              <option :value="'Long'">长整数</option>
+              <option :value="'Float'">浮点数</option>
+              <option :value="'Double'">双精度浮点数</option>
+              <option :value="'String'">字符串</option>
+            </select>
+            <select v-model="data.descriptorObj.charset" class="is-radiusless" :class="$style.charset" v-show="data.valueType === 'String'">
+              <option :value="'ASCII'" selected>ASCII</option>
+              <option :value="'GBK'">GBK</option>
+              <option :value="'UTF-8'">UTF-8</option>
+            </select>
+            <div :class="$style.readOnly" tabindex="-1" @click="onReadOnlyClick($event, data)">{{ data.readOnly ? '只读' : '读写'}}</div>
+            <select v-model="data.descriptorObj.dataModelCode" class="is-radiusless" :class="$style.dataModelCode">
+              <option :value="1" :disabled="data.valueType !== 'Boolean'">线圈</option>
+              <option :value="2" :disabled="!data.readOnly || data.valueType !== 'Boolean'">离散输入</option>
+              <option :value="3" selected>保持寄存器</option>
+              <option :value="4" :disabled="!data.readOnly">输入寄存器</option>
+            </select>
+            <div :class="$style.startingAddress">
+              <div :class="$style.tag">地址</div>
+              <input v-model.number="data.descriptorObj.startingAddress"
+                     :name="dataRefName(data.id, 'startingAddress')" :ref="dataRefName(data.id, 'startingAddress')" v-validate="'required|numeric|min_value:0|max_value:65535'"
+                     class="is-radiusless" :class="errors.has(dataRefName(data.id, 'startingAddress')) ? $style.error : null" type="number"/>
+            </div>
+            <div :class="[$style.addressCount, data.valueType !== 'String' ? $style.readOnly : null]">
+              <div :class="$style.tag">地址个数</div>
+              <input v-model.number="data.descriptorObj.addressCount"
+                     :name="dataRefName(data.id, 'addressCount')" :ref="dataRefName(data.id, 'addressCount')" v-validate="'required|numeric|min_value:1|max_value:128'"
+                     :readonly="data.valueType !== 'String'" class="is-radiusless" :class="errors.has(dataRefName(data.id, 'addressCount')) ? $style.error : null" type="number"/>
+            </div>
+            <div :class="$style.isBit" tabindex="-1" @click="onIsBitClick($event, data)"
+                 v-show="data.valueType === 'Boolean' && data.descriptorObj.dataModelCode !== 1 && data.descriptorObj.dataModelCode !== 2">
+              {{ data.descriptorObj.isBit ? '按位' : '不按位'}}
+            </div>
+            <select v-model.number="data.descriptorObj.bitIndex" class="is-radiusless" :class="$style.bitIndex"
+                    v-show="data.descriptorObj.isBit
                   && data.valueType === 'Boolean' && data.descriptorObj.dataModelCode !== 1 && data.descriptorObj.dataModelCode !== 2">
-            <option v-for="index in 16" :key="index - 1" :value="index - 1">{{ index - 1 }}</option>
-          </select>
-          <div :class="$style.tail">
-            <div :class="$style.delete" v-if="userAgent.isDesktopOrTv" @click="deleteData(index)">
-              <svg class="icon" aria-hidden="true">
-                <use xlink:href="#icon-delete"></use>
-              </svg>
+              <option v-for="index in 16" :key="index - 1" :value="index - 1">{{ index - 1 }}</option>
+            </select>
+            <div :class="$style.tail">
+              <div :class="$style.delete" v-if="userAgent.isDesktopOrTv" @click="deleteData(index)">
+                <svg class="icon" aria-hidden="true">
+                  <use xlink:href="#icon-delete"></use>
+                </svg>
+              </div>
+              <div :class="[$style.alarm, data.id === alarmDataId ? $style.selected : null]"
+                   @click="onAlarmClick(data.id, data.valueType)">
+                <svg class="icon" aria-hidden="true">
+                  <use xlink:href="#icon-alarm"></use>
+                </svg>
+              </div>
+              <div :class="$style.add" @click="addData(index)">
+                <svg class="icon" aria-hidden="true">
+                  <use xlink:href="#icon-add"></use>
+                </svg>
+              </div>
             </div>
-            <div :class="[$style.alarm, data.id === alarmDataId ? $style.selected : null]"
-                 @click="onAlarmClick(data.id)">
-              <svg class="icon" aria-hidden="true">
-                <use xlink:href="#icon-alarm"></use>
-              </svg>
-            </div>
-            <div :class="$style.add" @click="addData(index)">
-              <svg class="icon" aria-hidden="true">
-                <use xlink:href="#icon-add"></use>
-              </svg>
-            </div>
+            <div :class="$style.delete" tabindex="-1" :ref="dataRefName(data.id, 'delete')"
+                 @blur="onDataTouchBlur(data.id)" @click="deleteData(index)">删除</div>
           </div>
-          <div :class="$style.delete" tabindex="-1" :ref="dataRefName(data.id, 'delete')"
-               @blur="onDataTouchBlur(data.id)" @click="deleteData(index)">删除</div>
-        </div>
-      </draggable>
+        </draggable>
+      </div>
     </div>
   </div>
 </div>
@@ -515,6 +528,10 @@ export default {
           data.descriptorObj.dataModelCode = 3
         }
       }
+      // 检查和更新报警点
+      if (this.isAlarmData(data.id) && !this.alarmDataValueTypeCheck(data.valueType)) {
+        this.alarmDataId = 0
+      }
       // 检查和更正字符集
       if (data.valueType === 'String') {
         if (!data.descriptorObj.charset) data.descriptorObj.charset = 'ASCII'
@@ -593,12 +610,30 @@ export default {
     prefixInteger (num, len) {
       return (Array(len).join('0') + num).slice(-len)
     },
-    onAlarmClick (dataId) {
-      if (this.alarmDataId === dataId) {
+    onAlarmClick (dataId, dataValueType) {
+      if (this.isAlarmData(dataId)) {
         this.alarmDataId = 0
         return
       }
+      if (!this.alarmDataValueTypeCheck(dataValueType)) {
+        return
+      }
       this.alarmDataId = dataId
+    },
+    isAlarmData (dataId) {
+      return this.alarmDataId === dataId
+    },
+    alarmDataValueTypeCheck (dataValueType) {
+      switch (dataValueType) {
+        case 'Short':
+        case 'UShort':
+        case 'Integer':
+        case 'UInteger':
+        case 'Long':
+          return true
+        default:
+          return false
+      }
     },
     touchData (dataId) {
       const data = this.device.datas.find(data => data.id === dataId)
@@ -863,7 +898,7 @@ input, select {
         & > .tag {
           @include text-sle;
           flex: auto;
-          padding-right: 1rem;
+          padding-right: 1.25rem;
           font-weight: normal;
           font-size: 0.85rem;
           color: gray;
@@ -881,11 +916,12 @@ input, select {
         }
       }
       & > .body {
+        padding: 0.3125rem 0;
         display: flex;
         flex-wrap: wrap;
         align-items: flex-start;
         align-content: stretch;
-        & > * {
+        &:not(.data) > * {
           flex: 1 1 256px;
           display: flex;
           align-items: flex-start;
@@ -901,171 +937,191 @@ input, select {
           }
         }
         &.data {
-          display: flex;
-          flex-direction: column;
-          justify-content: flex-start;
-          align-items: stretch;
-          $dataHeight: 1.75rem;
-          & > * {
-            flex: auto;
-            display: flex;
-            justify-content: flex-start;
-            flex-wrap: wrap;
-            align-items: center;
-            padding: 0;
+          display: block;
+          & > .stat {
             margin: 0.25rem;
-            background-color: rgba(224, 224, 224, 0.26);
-            position: relative;
-            overflow: hidden;
+            padding-top: 0;
+            padding-bottom: 0;
+            color: #606060;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            align-content: flex-start;
             & > * {
               flex: none;
-              padding: 0 0.75rem;
-              height: $dataHeight;
-              line-height: $dataHeight;
-              border-left: 1px solid rgba(192, 192, 192, 0.25) !important;
-              &:first-child {
-                flex: none;
-                font-weight: unset;
-              }
-              &:nth-child(1), &:nth-child(2), &:last-child {
-                border-left: unset !important;
-              }
+              padding-right: 1.5rem;
             }
-            .error {
-              background-color: rgba(255, 0, 0, 0.35);
-              &:focus {
-                background-color: rgba(255, 0, 0, 0.5);
-              }
-            }
-            $op-bk-color: rgba(224, 224, 224, 0.38);
-            @mixin o-form-minxin {
-              font-size: 1rem;
-              font-family: inherit;
-              color: inherit;
-              border: none;
-              background-color: unset;
-              &:focus {
-                outline: unset;
-                background-color: $op-bk-color;
-              }
-            }
-            input, select {
-              @include o-form-minxin;
-            }
-            $alarm-color: darken($yellow, 24%);
-            & > .index {
-              width: $dataHeight;
-              background-color: rgba(159, 159, 159, 0.75);
-              color: white;
-              display: flex;
-              justify-content: center;
-              align-items: center;
-              cursor: move;
-              user-select: none;
-              &.active {
-                background-color: $alarm-color;
-              }
-            }
-            & > .name {
-              width: 10rem;
-            }
-            & > .value-type {
-            }
-            & > .charset {
-              border-left: unset !important;
-            }
-            @mixin text-btn-mixin {
-              cursor: default;
-              user-select: none;
-              &:active, &:focus {
-                background-color: $op-bk-color;
-                outline: none;
-              }
-            }
-            & > .read-only {
-              @include text-btn-mixin;
-            }
-            & > .data-model-code {
-            }
-            @mixin label-input-mixin($charCount) {
-              position: relative;
-              padding: 0;
-              & > .tag {
-                position: absolute;
-                left: 0.75rem;
-                line-height: $dataHeight;
-                pointer-events: none;
-              }
-              & > input {
-                height: 100%;
-                width: 100%;
-                padding: 0 0.75rem 0 calc(#{1.25 * $charCount}rem + 0.75rem);
-              }
-            }
-            & > .starting-address {
-              @include label-input-mixin(2);
-              width: 8rem;
-            }
-            & > .address-count {
-              @include label-input-mixin(4);
-              width: 9.5rem;
-              border-left: unset !important;
-            }
-            & > .is-bit {
-              @include text-btn-mixin;
-            }
-            & > .bit-index {
-              border-left: unset !important;
-            }
-            & > .tail {
+          }
+          & > .data-list {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: stretch;
+            $dataHeight: 1.75rem;
+            & > * {
               flex: auto;
               display: flex;
-              height: $dataHeight;
-              padding-right: 0;
-              justify-content: flex-end;
-              align-items: stretch;
+              justify-content: flex-start;
+              flex-wrap: wrap;
+              align-items: center;
+              padding: 0;
+              margin: 0.25rem;
+              background-color: rgba(224, 224, 224, 0.26);
+              position: relative;
+              overflow: hidden;
               & > * {
                 flex: none;
-                width: $dataHeight * 1.5;
-                font-size: 1.25rem;
-              }
-              @mixin btn-mixin($hover-color, $active-color) {
-                text-align: center;
-                cursor: pointer;
-                user-select: none;
-                background-color: unset;
-                &:hover {
-                  background-color: $hover-color;
-                  color: findColorInvert($hover-color);
+                padding: 0 0.75rem;
+                height: $dataHeight;
+                line-height: $dataHeight;
+                border-left: 1px solid rgba(192, 192, 192, 0.25) !important;
+                &:first-child {
+                  flex: none;
+                  font-weight: unset;
                 }
-                &.selected, &:active, &:focus {
-                  background-color: $active-color;
-                  color: findColorInvert($active-color);
+                &:nth-child(1), &:nth-child(2), &:last-child {
+                  border-left: unset !important;
+                }
+              }
+              .error {
+                background-color: rgba(255, 0, 0, 0.35);
+                &:focus {
+                  background-color: rgba(255, 0, 0, 0.5);
+                }
+              }
+              $op-bk-color: rgba(224, 224, 224, 0.38);
+              @mixin o-form-minxin {
+                font-size: 1rem;
+                font-family: inherit;
+                color: inherit;
+                border: none;
+                background-color: unset;
+                &:focus {
+                  outline: unset;
+                  background-color: $op-bk-color;
+                }
+              }
+              input, select {
+                @include o-form-minxin;
+              }
+              $alarm-color: darken($yellow, 24%);
+              & > .index {
+                width: $dataHeight;
+                background-color: rgba(159, 159, 159, 0.75);
+                color: white;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                cursor: move;
+                user-select: none;
+                &.active {
+                  background-color: $alarm-color;
+                }
+              }
+              & > .name {
+                width: 10rem;
+              }
+              & > .value-type {
+              }
+              & > .charset {
+                border-left: unset !important;
+              }
+              @mixin text-btn-mixin {
+                cursor: default;
+                user-select: none;
+                &:active, &:focus {
+                  background-color: $op-bk-color;
+                  outline: none;
+                }
+              }
+              & > .read-only {
+                @include text-btn-mixin;
+              }
+              & > .data-model-code {
+              }
+              @mixin label-input-mixin($charCount) {
+                position: relative;
+                padding: 0;
+                & > .tag {
+                  position: absolute;
+                  left: 0.75rem;
+                  line-height: $dataHeight;
+                  pointer-events: none;
+                }
+                & > input {
+                  height: 100%;
+                  width: 100%;
+                  padding: 0 0.75rem 0 calc(#{1.25 * $charCount}rem + 0.75rem);
+                }
+              }
+              & > .starting-address {
+                @include label-input-mixin(2);
+                width: 8rem;
+              }
+              & > .address-count {
+                @include label-input-mixin(4);
+                width: 9.5rem;
+                border-left: unset !important;
+                &.read-only {
+                  color: gray;
+                }
+              }
+              & > .is-bit {
+                @include text-btn-mixin;
+              }
+              & > .bit-index {
+                border-left: unset !important;
+              }
+              & > .tail {
+                flex: auto;
+                display: flex;
+                height: $dataHeight;
+                padding-right: 0;
+                justify-content: flex-end;
+                align-items: stretch;
+                & > * {
+                  flex: none;
+                  width: $dataHeight * 1.5;
+                  font-size: 1.25rem;
+                }
+                @mixin btn-mixin($hover-color, $active-color) {
+                  text-align: center;
+                  cursor: pointer;
+                  user-select: none;
+                  background-color: unset;
+                  &:hover {
+                    background-color: $hover-color;
+                    color: findColorInvert($hover-color);
+                  }
+                  &.selected, &:active, &:focus {
+                    background-color: $active-color;
+                    color: findColorInvert($active-color);
+                  }
+                }
+                & > .delete {
+                  @include btn-mixin($orange, darken($orange, 5%));
+                }
+                & > .alarm {
+                  @include btn-mixin(rgba(224, 224, 224, 0.38), $alarm-color);
+                }
+                & > .add {
+                  @include btn-mixin($turquoise, darken($turquoise, 5%));
                 }
               }
               & > .delete {
-                @include btn-mixin($orange, darken($orange, 5%));
+                $width: 64px;
+                position: absolute;
+                top: 0;
+                right: -$width;
+                width: $width;
+                height: 100%;
+                background-color: $orange;
+                color: white;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                user-select: none;
               }
-              & > .alarm {
-                @include btn-mixin(rgba(224, 224, 224, 0.38), $alarm-color);
-              }
-              & > .add {
-                @include btn-mixin($turquoise, darken($turquoise, 5%));
-              }
-            }
-            & > .delete {
-              $width: 64px;
-              position: absolute;
-              top: 0;
-              right: -$width;
-              width: $width;
-              height: 100%;
-              background-color: $orange;
-              color: white;
-              display: flex;
-              justify-content: center;
-              align-items: center;
-              user-select: none;
             }
           }
         }
