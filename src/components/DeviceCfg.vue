@@ -150,7 +150,7 @@
                 <use xlink:href="#icon-info"></use>
               </svg>
           </span><span>:</span>
-            <span>{{ this.device.datas.length }}</span>/<span>{{ this.device.descriptorObj.allDataCountUpper }}</span>
+            <span>{{ this.device.datas.length }}</span><span>/{{ device.descriptorObj.allDataCountUpper }}</span>
           </div>
           <div>
             <span>报警</span>
@@ -177,7 +177,9 @@
                 <use xlink:href="#icon-info"></use>
               </svg>
           </span><span>:</span>
-            <span>{{ '-' }}</span>/<span>{{ this.device.descriptorObj.allDataByteCountUpper }}</span>
+            <span tabindex="-1" ref="allDataByteCount"
+                  :class="countBytesAndFrames.allDataByteCount > device.descriptorObj.allDataByteCountUpper ? $style.error : null">
+              {{ countBytesAndFrames.allDataByteCount }}</span><span>/{{ device.descriptorObj.allDataByteCountUpper }}</span>
           </div>
           <div>
             <span>帧数</span>
@@ -190,7 +192,9 @@
                 <use xlink:href="#icon-info"></use>
               </svg>
           </span><span>:</span>
-            <span>{{ '-' }}</span>/<span>{{ this.device.descriptorObj.allFrameCountUpper }}</span>
+            <span tabindex="-1" ref="allFrameCount"
+              :class="countBytesAndFrames.allFrameCount > device.descriptorObj.allFrameCountUpper ? $style.error : null">
+              {{ countBytesAndFrames.allFrameCount }}</span><span>/{{ device.descriptorObj.allFrameCountUpper }}</span>
           </div>
         </div>
         <draggable v-model="device.datas" :options="{handle: '.handle', ghostClass: $style.sortableGhost}"
@@ -420,6 +424,48 @@ export default {
     },
     alarmDataIndex () {
       return this.device.datas.findIndex(value => value.id === this.alarmDataId)
+    },
+    countBytesAndFrames () {
+      /*
+       * 数据结构化
+       */
+      const set = [new Set(), new Set(), new Set(), new Set()]
+      for (const data of this.device.datas) {
+        if (!Number.isNaN(data.descriptorObj.addressCount)) {
+          for (let i = 0; i < data.descriptorObj.addressCount; i++) {
+            set[data.descriptorObj.dataModelCode - 1].add(data.descriptorObj.startingAddress + i)
+          }
+        }
+      }
+      /*
+       * 计算所有数据字节数
+       */
+      let allDataByteCount = 0
+      allDataByteCount += Math.floor((set[0].size / 8)) + (set[0].size % 8 === 0 ? 0 : 1)
+      allDataByteCount += Math.floor((set[1].size / 8)) + (set[1].size % 8 === 0 ? 0 : 1)
+      allDataByteCount += set[2].size * 2
+      allDataByteCount += set[3].size * 2
+      /*
+       * 计算帧数
+       */
+      let allFrameCount = 0
+      const frameDataByteCount = this.device.descriptorObj.frameByteCountUpper - (this.device.descriptorObj.isTcp ? 7 : 3) - 2
+      const arr = [[...set[0]].sort(this.compareNumber), [...set[1]].sort(this.compareNumber), [...set[2]].sort(this.compareNumber), [...set[3]].sort(this.compareNumber)]
+      // 数据模型1和2
+      let frameAddressCount = frameDataByteCount * 8
+      allFrameCount += this.countFrame(frameAddressCount, arr[0])
+      allFrameCount += this.countFrame(frameAddressCount, arr[1])
+      // 数据模型3和4
+      frameAddressCount = Math.floor(frameDataByteCount / 2)
+      allFrameCount += this.countFrame(frameAddressCount, arr[2])
+      allFrameCount += this.countFrame(frameAddressCount, arr[3])
+      /*
+       * 返回结果
+       */
+      return {
+        allDataByteCount,
+        allFrameCount
+      }
     }
   },
   watch: {
@@ -446,10 +492,38 @@ export default {
     }
   },
   methods: {
+    compareNumber (num1, num2) {
+      return num1 > num2 ? 1 : (num1 < num2 ? -1 : 0)
+    },
+    countFrame (frameAddressCount, addressArr) {
+      let frameCount = 0
+      let addressCount = 0
+      let preAddress = -2
+      for (const address of addressArr) {
+        if (addressCount !== 0 && address !== preAddress + 1) {
+          frameCount++
+          addressCount = 1
+          preAddress = address
+          continue
+        }
+        addressCount++
+        preAddress = address
+        if (addressCount === frameAddressCount) {
+          frameCount++
+          addressCount = 0
+        }
+      }
+      if (addressCount !== 0) {
+        frameCount++
+        addressCount = 0
+      }
+      return frameCount
+    },
     commit () {
       this.committingErr = ''
       this.isCommitting = true
       this.validate().then((flags) => {
+        // 处理所有input的验证结果
         let i = 0
         for (const flag of flags) {
           if (!flag) {
@@ -460,15 +534,27 @@ export default {
             const targetOrig = this.$refs[this.fieldNames[i]]
             const target = Array.isArray(targetOrig) ? targetOrig[0] : targetOrig
             this.$nextTick().then(() => {
-              target.focus()
-              if (this.userAgent.isIOS) { // IOS下，focus事件必须由用户输入发起；或者调用代码处于用户输入发起的调用栈中：否则不生效
-                // noinspection JSUnresolvedFunction
-                target.scrollIntoViewIfNeeded()
-              }
+              this.focus(target)
             })
             return
           }
           i++
+        }
+        // 验证所有数据字节数
+        if (this.countBytesAndFrames.allDataByteCount > this.device.descriptorObj.allDataByteCountUpper) {
+          this.collapsedDataCfg = false
+          this.$nextTick().then(() => {
+            this.focus(this.$refs.allDataByteCount)
+          })
+          return
+        }
+        // 验证请求帧数
+        if (this.countBytesAndFrames.allFrameCount > this.device.descriptorObj.allFrameCountUpper) {
+          this.collapsedDataCfg = false
+          this.$nextTick().then(() => {
+            this.focus(this.$refs.allFrameCount)
+          })
+          return
         }
         // TODO 提交工作
         // TODO 调试完成后删除下面的内容
@@ -478,6 +564,13 @@ export default {
       }).finally(() => {
         this.isCommitting = false
       })
+    },
+    focus (target) {
+      target.focus()
+      if (this.userAgent.isIOS) { // IOS下，focus事件必须由用户输入发起；或者调用代码处于用户输入发起的调用栈中：否则不生效
+        // noinspection JSUnresolvedFunction
+        target.scrollIntoViewIfNeeded()
+      }
     },
     validate () {
       const promises = []
@@ -950,6 +1043,12 @@ input, select {
             & > * {
               flex: none;
               padding-right: 1.5rem;
+            }
+            .error {
+              font-size: 1rem;
+              &:focus {
+                outline: none;
+              }
             }
           }
           & > .data-list {
