@@ -495,10 +495,10 @@ export default {
       }
     }
     // 初始化axios的XSRF内容
+    const csrfElement = document.getElementById('_csrf')
+    const csrfToken = csrfElement ? csrfElement.getAttribute('content') : 'DEBUG'
     this.axiosInst = this.$axios.create({
-      headers: {
-        'X-CSRF-TOKEN': document.getElementById('_csrf').getAttribute('content')
-      }
+      headers: {'X-CSRF-TOKEN': csrfToken}
     })
   },
   methods: {
@@ -530,6 +530,7 @@ export default {
       return frameCount
     },
     commit () {
+      const errPrefix = this.isModify ? '修改设备失败：' : '创建设备失败：'
       this.committingErr = ''
       this.isCommitting = true
       this.validate().then((flags) => {
@@ -574,13 +575,15 @@ export default {
             this.alertBeforeUnload = false
             location.href = '/monitor/' + deviceId
           } else {
-            throw new Error(response.desc)
+            this.committingErr = errPrefix + response.desc
           }
         }).catch((err) => {
-          throw err
+          this.committingErr = errPrefix + err.message
+        }).finally(() => {
+          this.isCommitting = false
         })
       }).catch((err) => {
-        this.committingErr = '发生错误：' + err.message
+        this.committingErr = errPrefix + err.message
       }).finally(() => {
         this.isCommitting = false
       })
