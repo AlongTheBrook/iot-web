@@ -395,7 +395,6 @@ export default {
       collapsedDeviceType: !this.userAgent.isDesktopOrTv,
       collapsedDataCfg: !this.userAgent.isDesktopOrTv,
       device: _device,
-      alertBeforeUnload: true,
       isCommitting: false,
       committingErr: '',
       nextDataIdValue: _nextDataId,
@@ -487,7 +486,7 @@ export default {
   mounted () {
     // 此方法在移动端的H5规范中不生效，经多次尝试解决，未找到方法
     window.onbeforeunload = () => {
-      if (this.alertBeforeUnload) {
+      if (this.inputOpCount > 0) {
         return false
       }
     }
@@ -599,7 +598,7 @@ export default {
           const result = response.data
           if (result.success) {
             const deviceId = result.data
-            this.alertBeforeUnload = false
+            this.inputOpCount = 0
             this.$nextTick().then(() => {
               location.href = '/monitor/' + deviceId
             })
