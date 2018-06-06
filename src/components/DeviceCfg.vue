@@ -218,7 +218,7 @@
               <option :value="'String'">字符串</option>
             </select>
             <select v-model="data.descriptorObj.charset" class="is-radiusless" :class="$style.charset" v-show="data.valueType === 'String'">
-              <option :value="'ASCII'" selected>ASCII</option>
+              <option :value="'US-ASCII'" selected>US-ASCII</option>
               <option :value="'GBK'">GBK</option>
               <option :value="'UTF-8'">UTF-8</option>
             </select>
@@ -294,7 +294,7 @@ const _dataTplDescriptorObj = () => {
     byteOrder: 'BIG_ENDIAN',
     isBit: false,
     bitIndex: 0,
-    charset: 'ASCII'
+    charset: 'US-ASCII'
   }
 }
 const _dataTplTouchData = () => {
@@ -655,7 +655,7 @@ export default {
       }
       // 检查和更正字符集
       if (data.valueType === 'String') {
-        if (!data.descriptorObj.charset) data.descriptorObj.charset = 'ASCII'
+        if (!data.descriptorObj.charset) data.descriptorObj.charset = 'US-ASCII'
       } else {
         // noinspection JSValidateTypes
         data.descriptorObj.charset = null
