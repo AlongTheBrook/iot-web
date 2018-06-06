@@ -494,11 +494,12 @@ export default {
         this.alarmDataId = this.device.datas[this.device.alarmDataIndex].id
       }
     }
-    // 初始化axios的CSRF内容
+    // 获取CSRF的防范请求头
     const csrfHeaderElement = document.querySelector('meta[name="_csrf_header"]')
     const csrfElement = document.querySelector('meta[name="_csrf"]')
     const csrfHeader = csrfHeaderElement ? csrfHeaderElement.getAttribute('content') : 'DEBUG'
     const csrf = csrfElement ? csrfElement.getAttribute('content') : 'DEBUG'
+    // 创建并初始化axios的实例
     this.axiosInst = this.$axios.create({
       headers: {[csrfHeader]: csrf}
     })
