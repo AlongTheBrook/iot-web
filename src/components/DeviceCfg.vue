@@ -4,7 +4,7 @@
   <div :class="$style.title">
     <div>
       <div>{{ isModify ? '修改设备' : '创建设备' }}</div>
-      <a class="button is-primary is-radiusless" :class="{'is-loading': isCommitting}" :disabled="isCommitting" @click="commit">{{ isModify ? '修改设备' : '创建设备' }}</a>
+      <a class="button is-radiusless" :class="[isCommitting ? 'is-loading': null, isModify ? $style.isWarning : 'is-primary']" :disabled="isCommitting" @click="commit">{{ isModify ? '修改设备' : '创建设备' }}</a>
     </div>
     <div :class="$style.error" v-if="committingErr">{{ committingErr }}</div>
   </div>
@@ -281,12 +281,8 @@
 <script>
 import Draggable from 'vuedraggable'
 
-// TODO
-// 初始化：创建：数据需要指定默认值；修改：初始化descriptorObj为descriptor，同时适用于设备和数据。
-// 提交：需要检查验证状态
-// 需要设置初始值：data.id, data.descriptorObj.charset
-const gDeviceLoaded = undefined // JSON.parse('{"name":"接口测试#1","desc":"这里是描述#1","alarmDataIndex":2,"descriptorType":"modbus","descriptorObj":{"isTcp":false,"slaveAddress":1,"allDataCountUpper":64,"allDataByteCountUpper":256,"allFrameCountUpper":16,"frameByteCountUpper":128,"hbIntervalSec":60,"daIntervalSec":120},"datas":[{"name":"进口压力","valueType":"Short","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":0,"addressCount": 1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":"UTF-8"}},{"name":"出口压力","valueType":"Short","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":1,"addressCount":1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":"GBK"}},{"name":"电流","valueType":"Short","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":2,"addressCount":1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":null}},{"name":"电流2","valueType":"Long","readOnly":false,"descriptorType":"modbus","descriptorObj":{"dataModelCode":3,"startingAddress":3,"addressCount":1,"byteOrder":"BIG_ENDIAN","isBit":false,"bitIndex":-1,"charset":null}}]}')
-
+// 获取框架外的初始数据
+const _deviceLoaded = window._initData
 /*
 初始化常量
  */
@@ -353,13 +349,21 @@ const _deviceTpl = () => {
 /*
 初始化设备
  */
-const _deviceLoaded = gDeviceLoaded
 if (_deviceLoaded && _deviceLoaded.datas) {
-  let i = 0
-  for (const data of _deviceLoaded.datas) {
-    _deviceLoaded.datas[i] = Object.assign({}, _dataTpl(), data)
-    _deviceLoaded.datas[i].descriptorObj = Object.assign({}, _dataTplDescriptorObj(), data.descriptorObj)
-    i++
+  if (_deviceLoaded) {
+    _deviceLoaded.descriptorObj = _deviceLoaded.descriptor
+    _deviceLoaded.descriptor = undefined
+    _deviceLoaded.descriptorJson = undefined
+  }
+  if (_deviceLoaded.datas) {
+    let i = 0
+    for (const data of _deviceLoaded.datas) {
+      data.descriptorObj = data.descriptor
+      data.descriptor = undefined
+      _deviceLoaded.datas[i] = Object.assign({}, _dataTpl(), data)
+      _deviceLoaded.datas[i].descriptorObj = Object.assign({}, _dataTplDescriptorObj(), data.descriptorObj)
+      i++
+    }
   }
 }
 const _device = Object.assign({}, _deviceTpl(), _deviceLoaded)
@@ -395,7 +399,8 @@ export default {
       isCommitting: false,
       committingErr: '',
       nextDataIdValue: _nextDataId,
-      alarmDataId: 0
+      alarmDataId: 0,
+      axiosInst: null
     }
   },
   computed: {
@@ -489,6 +494,12 @@ export default {
         this.alarmDataId = this.device.datas[this.device.alarmDataIndex].id
       }
     }
+    // 初始化axios的XSRF内容
+    this.axiosInst = this.$axios.create({
+      headers: {
+        'X-CSRF-TOKEN': document.getElementById('_csrf').getAttribute('content')
+      }
+    })
   },
   methods: {
     compareNumber (num1, num2) {
@@ -555,11 +566,21 @@ export default {
           })
           return
         }
-        // TODO 提交工作
-        // TODO 调试完成后删除下面的内容
-        this.committingErr = 'OK'
+        // 提交数据
+        const url = this.isModify ? '/api/device/modify' : '/api/device/create'
+        this.axiosInst.post(url, this.device).then((response) => {
+          if (response.success) {
+            const deviceId = response.data
+            this.alertBeforeUnload = false
+            location.href = '/monitor/' + deviceId
+          } else {
+            throw new Error(response.desc)
+          }
+        }).catch((err) => {
+          throw err
+        })
       }).catch((err) => {
-        this.committingErr = err.message
+        this.committingErr = '发生错误：' + err.message
       }).finally(() => {
         this.isCommitting = false
       })
@@ -895,6 +916,23 @@ input, select {
 .error {
   color: red;
   font-size: 0.75rem;
+}
+
+.is-warning {
+  $color: darken($yellow, 18%);
+  background-color: $color !important;
+  border-color: transparent !important;
+  color: white !important;
+  &:hover {
+    background-color: darken($color, 2.5%) !important;
+    border-color: transparent !important;
+    color: white !important;
+  }
+  &:active {
+    background-color: darken($color, 5%) !important;
+    border-color: transparent !important;
+    color: white !important;
+  }
 }
 
 .input {
