@@ -494,11 +494,13 @@ export default {
         this.alarmDataId = this.device.datas[this.device.alarmDataIndex].id
       }
     }
-    // 初始化axios的XSRF内容
-    const csrfElement = document.getElementById('_csrf')
-    const csrfToken = csrfElement ? csrfElement.getAttribute('content') : 'DEBUG'
+    // 初始化axios的CSRF内容
+    const csrfHeaderElement = document.querySelector('meta[name="_csrf_header"]')
+    const csrfElement = document.querySelector('meta[name="_csrf"]')
+    const csrfHeader = csrfHeaderElement ? csrfHeaderElement.getAttribute('content') : 'DEBUG'
+    const csrf = csrfElement ? csrfElement.getAttribute('content') : 'DEBUG'
     this.axiosInst = this.$axios.create({
-      headers: {'X-CSRF-TOKEN': csrfToken}
+      headers: {[csrfHeader]: csrf}
     })
   },
   methods: {
