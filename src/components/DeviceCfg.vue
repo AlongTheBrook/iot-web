@@ -569,7 +569,12 @@ export default {
         }
         // 提交数据
         const url = this.isModify ? '/api/device/modify' : '/api/device/create'
-        this.axiosInst.post(url, this.device).then((response) => {
+        const datas = new Array(this.device.datas.length)
+        for (let i = 0; i < datas.length; i++) {
+          datas[i] = Object.assign({}, this.device.datas[i], {touchData: undefined})
+        }
+        const device = Object.assign({}, this.device, {datas})
+        this.axiosInst.post(url, device).then((response) => {
           if (response.success) {
             const deviceId = response.data
             this.alertBeforeUnload = false
