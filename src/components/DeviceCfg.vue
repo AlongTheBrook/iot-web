@@ -578,12 +578,13 @@ export default {
         }
         const device = Object.assign({}, this.device, {datas})
         this.axiosInst.post(url, device).then((response) => {
-          if (response.success) {
-            const deviceId = response.data
+          const result = response.data
+          if (result.success) {
+            const deviceId = result.data
             this.alertBeforeUnload = false
             location.href = '/monitor/' + deviceId
           } else {
-            this.committingErr = errPrefix + response.desc
+            this.committingErr = errPrefix + result.desc
           }
         }).catch((err) => {
           this.committingErr = errPrefix + err.message
