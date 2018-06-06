@@ -543,7 +543,11 @@ export default {
       return frameCount
     },
     commit () {
+      if (this.isCommitting || this.inputOpCount <= 0) {
+        return
+      }
       const errPrefix = this.isModify ? '修改设备失败：' : '创建设备失败：'
+      let validateErr = null
       this.committingErr = ''
       this.isCommitting = true
       this.validate().then((flags) => {
@@ -560,7 +564,7 @@ export default {
             this.$nextTick().then(() => {
               this.focus(target)
             })
-            return
+            throw new Error()
           }
           i++
         }
@@ -570,7 +574,7 @@ export default {
           this.$nextTick().then(() => {
             this.focus(this.$refs.allDataByteCount)
           })
-          return
+          throw new Error()
         }
         // 验证请求帧数
         if (this.countBytesAndFrames.allFrameCount > this.device.descriptorObj.allFrameCountUpper) {
@@ -578,12 +582,12 @@ export default {
           this.$nextTick().then(() => {
             this.focus(this.$refs.allFrameCount)
           })
-          // return
+          throw new Error()
         }
       }).catch((err) => {
-        this.committingErr = errPrefix + err.message
+        validateErr = err
       }).finally(() => {
-        if (this.committingErr) {
+        if (validateErr) {
           this.isCommitting = false
           return
         }
@@ -603,7 +607,7 @@ export default {
               location.href = '/monitor/' + deviceId
             })
           } else {
-            this.committingErr = errPrefix + result.desc
+            throw new Error(result.desc)
           }
         }).catch((err) => {
           this.committingErr = errPrefix + err.message
@@ -951,12 +955,12 @@ input, select {
   background-color: $color !important;
   border-color: transparent !important;
   color: white !important;
-  &:hover {
+  &:not([disabled]):hover {
     background-color: darken($color, 2.5%) !important;
     border-color: transparent !important;
     color: white !important;
   }
-  &:active {
+  &:not([disabled]):active {
     background-color: darken($color, 5%) !important;
     border-color: transparent !important;
     color: white !important;
