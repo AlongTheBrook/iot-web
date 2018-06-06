@@ -583,7 +583,7 @@ export default {
       }).catch((err) => {
         this.committingErr = errPrefix + err.message
       }).finally(() => {
-        if (this.isCommitting) {
+        if (this.committingErr) {
           this.isCommitting = false
           return
         }
