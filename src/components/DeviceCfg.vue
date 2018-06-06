@@ -4,7 +4,7 @@
   <div :class="$style.title">
     <div>
       <div>{{ isModify ? '修改设备' : '创建设备' }}</div>
-      <a class="button is-radiusless" :class="[isCommitting ? 'is-loading': null, isModify ? $style.isWarning : 'is-primary']" :disabled="isCommitting" @click="commit">{{ isModify ? '修改设备' : '创建设备' }}</a>
+      <a class="button is-radiusless" :class="[isCommitting ? 'is-loading': null, isModify ? $style.isWarning : 'is-primary']" :disabled="isCommitting || inputOpCount <= 0" @click="commit">{{ isModify ? '修改设备' : '创建设备' }}</a>
     </div>
     <div :class="$style.error" v-if="committingErr">{{ committingErr }}</div>
   </div>
@@ -400,7 +400,8 @@ export default {
       committingErr: '',
       nextDataIdValue: _nextDataId,
       alarmDataId: 0,
-      axiosInst: null
+      axiosInst: null,
+      inputOpCount: 0
     }
   },
   computed: {
@@ -475,6 +476,12 @@ export default {
   watch: {
     alarmDataIndex () {
       this.device.alarmDataIndex = this.alarmDataIndex
+    },
+    device: {
+      handler: function () {
+        this.inputOpCount++
+      },
+      deep: true
     }
   },
   mounted () {
@@ -502,6 +509,10 @@ export default {
     // 创建并初始化axios的实例
     this.axiosInst = this.$axios.create({
       headers: {[csrfHeader]: csrf}
+    })
+    // 设置操作计数清零
+    this.$nextTick().then(() => {
+      this.inputOpCount = 0
     })
   },
   methods: {
@@ -568,9 +579,16 @@ export default {
           this.$nextTick().then(() => {
             this.focus(this.$refs.allFrameCount)
           })
+          // return
+        }
+      }).catch((err) => {
+        this.committingErr = errPrefix + err.message
+      }).finally(() => {
+        if (this.isCommitting) {
+          this.isCommitting = false
           return
         }
-        // 提交数据
+        /// Start... 提交数据
         const url = this.isModify ? '/api/device/modify' : '/api/device/create'
         const datas = new Array(this.device.datas.length)
         for (let i = 0; i < datas.length; i++) {
@@ -582,7 +600,9 @@ export default {
           if (result.success) {
             const deviceId = result.data
             this.alertBeforeUnload = false
-            location.href = '/monitor/' + deviceId
+            this.$nextTick().then(() => {
+              location.href = '/monitor/' + deviceId
+            })
           } else {
             this.committingErr = errPrefix + result.desc
           }
@@ -591,10 +611,7 @@ export default {
         }).finally(() => {
           this.isCommitting = false
         })
-      }).catch((err) => {
-        this.committingErr = errPrefix + err.message
-      }).finally(() => {
-        this.isCommitting = false
+        /// End.
       })
     },
     focus (target) {
@@ -969,6 +986,9 @@ input, select {
 
 .inputGroup {
   display: flex;
+  & > input {
+    min-width: 0; // Hack for firefox only
+  }
   & > .unit {
     flex: none;
   }

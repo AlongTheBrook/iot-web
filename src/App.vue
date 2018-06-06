@@ -44,6 +44,28 @@ html {
   color: #2c3e50;
 }
 
+/// 为与主框架融洽相处而不得不做的Hack工作
+/// Hack start...
+header.main-header {
+  font-size: 14px;
+  line-height: 1.42857143;
+  font-family: 'Source Sans Pro','Helvetica Neue',Helvetica,Arial,sans-serif;
+  //noinspection SpellCheckingInspection
+  & > nav.navbar.navbar-static-top {
+    display: block;
+  }
+}
+aside.main-sidebar {
+  font-size: 14px;
+  line-height: 1.42857143;
+  font-family: 'Source Sans Pro','Helvetica Neue',Helvetica,Arial,sans-serif;
+}
+.tooltip-inner {
+  max-width: 256px !important;
+  text-align: left !important;
+}
+/// Hack end.
+
 .is-desktop-or-tv {
   padding: 0.5rem;
 }
