@@ -684,8 +684,10 @@ export default {
         // noinspection JSValidateTypes
         data.descriptorObj.charset = null
       }
+      // 检查按位相关内容
       if (!(data.descriptorObj.isBit && data.valueType === 'Boolean' &&
           data.descriptorObj.dataModelCode !== 1 && data.descriptorObj.dataModelCode !== 2)) {
+        data.descriptorObj.isBit = false
         data.descriptorObj.bitIndex = -1
       } else if (data.descriptorObj.bitIndex < 0 || data.descriptorObj.bitIndex > 15) {
         data.descriptorObj.bitIndex = 0
