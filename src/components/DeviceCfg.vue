@@ -71,21 +71,21 @@
     <div :class="[$style.block, collapsedDeviceType ? $style.collapsed : null]">
       <div :class="$style.head" @click="collapsedDeviceType = !collapsedDeviceType">
         <div>设备类型</div>
-        <div :class="$style.tag">{{ device.descriptorObj.isTcp ? 'MODBUS-TCP' : 'MODBUS-RTU'}}</div>
+        <div :class="$style.tag">{{ device.descriptorObj.tcp ? 'MODBUS-TCP' : 'MODBUS-RTU'}}</div>
       </div>
       <div :class="$style.body">
         <div>
           <div>设备类型</div>
           <div>
             <div class="select is-small " :class="$style.select">
-              <select class="is-radiusless" v-model="device.descriptorObj.isTcp" @change="onIsTcpChange">
+              <select class="is-radiusless" v-model="device.descriptorObj.tcp" @change="onTcpChange">
                 <option :value="false">MODBUS-RTU</option>
                 <option :value="true">MODBUS-TCP</option>
               </select>
             </div>
           </div>
         </div>
-        <div v-show="!device.descriptorObj.isTcp">
+        <div v-show="!device.descriptorObj.tcp">
           <div>从站地址</div>
           <div>
             <input v-model.number="device.descriptorObj.slaveAddress" name="从站地址" ref="从站地址"
@@ -241,12 +241,12 @@
                      :name="dataRefName(data.id, 'addressCount')" :ref="dataRefName(data.id, 'addressCount')" v-validate="'required|numeric|min_value:1|max_value:128'"
                      :readonly="data.valueType !== 'String'" class="is-radiusless" :class="errors.has(dataRefName(data.id, 'addressCount')) ? $style.error : null" type="number"/>
             </div>
-            <div :class="$style.isBit" tabindex="-1" @click="onIsBitClick($event, data)"
+            <div :class="$style.bit" tabindex="-1" @click="onBitClick($event, data)"
                  v-show="data.valueType === 'Boolean' && data.descriptorObj.dataModelCode !== 1 && data.descriptorObj.dataModelCode !== 2">
-              {{ data.descriptorObj.isBit ? '按位' : '不按位'}}
+              {{ data.descriptorObj.bit ? '按位' : '不按位'}}
             </div>
             <select v-model.number="data.descriptorObj.bitIndex" class="is-radiusless" :class="$style.bitIndex"
-                    v-show="data.descriptorObj.isBit
+                    v-show="data.descriptorObj.bit
                   && data.valueType === 'Boolean' && data.descriptorObj.dataModelCode !== 1 && data.descriptorObj.dataModelCode !== 2">
               <option v-for="index in 16" :key="index - 1" :value="index - 1">{{ index - 1 }}</option>
             </select>
@@ -292,7 +292,7 @@ const _dataTplDescriptorObj = () => {
     startingAddress: 0,
     addressCount: 1,
     byteOrder: 'BIG_ENDIAN',
-    isBit: false,
+    bit: false,
     bitIndex: 0,
     charset: 'US-ASCII'
   }
@@ -321,7 +321,7 @@ const _dataTpl = () => {
 }
 const _deviceTplDescriptorObj = () => {
   return {
-    isTcp: false,
+    tcp: false,
     slaveAddress: 1,
     allDataCountUpper: 64,
     allDataByteCountUpper: 256,
@@ -453,7 +453,7 @@ export default {
        * 计算帧数
        */
       let allFrameCount = 0
-      const frameDataByteCount = this.device.descriptorObj.frameByteCountUpper - (this.device.descriptorObj.isTcp ? 7 : 3) - 2
+      const frameDataByteCount = this.device.descriptorObj.frameByteCountUpper - (this.device.descriptorObj.tcp ? 7 : 3) - 2
       const arr = [[...set[0]].sort(this.compareNumber), [...set[1]].sort(this.compareNumber), [...set[2]].sort(this.compareNumber), [...set[3]].sort(this.compareNumber)]
       // 数据模型1和2
       let frameAddressCount = frameDataByteCount * 8
@@ -634,7 +634,7 @@ export default {
     nextDataId () {
       return this.nextDataIdValue--
     },
-    onIsTcpChange () {
+    onTcpChange () {
       this.device.descriptorObj.slaveAddress = 1 // 防止发生从站地址相关界面内容隐藏时报错问题
     },
     dataRefName (id, name) {
@@ -683,9 +683,9 @@ export default {
         data.descriptorObj.charset = null
       }
       // 检查按位相关内容
-      if (!(data.descriptorObj.isBit && data.valueType === 'Boolean' &&
+      if (!(data.descriptorObj.bit && data.valueType === 'Boolean' &&
           data.descriptorObj.dataModelCode !== 1 && data.descriptorObj.dataModelCode !== 2)) {
-        data.descriptorObj.isBit = false
+        data.descriptorObj.bit = false
         data.descriptorObj.bitIndex = -1
       } else if (data.descriptorObj.bitIndex < 0 || data.descriptorObj.bitIndex > 15) {
         data.descriptorObj.bitIndex = 0
@@ -704,9 +704,9 @@ export default {
       data.readOnly = !data.readOnly
       this.dataCheckAndCorrect(data)
     },
-    onIsBitClick (event, data) {
+    onBitClick (event, data) {
       event.target.focus()
-      data.descriptorObj.isBit = !data.descriptorObj.isBit
+      data.descriptorObj.bit = !data.descriptorObj.bit
       this.dataCheckAndCorrect(data)
     },
     deleteData (dataIndex) {
@@ -725,7 +725,7 @@ export default {
       let data
       if (tplData) {
         data = JSON.parse(JSON.stringify(tplData))
-        if (data.descriptorObj.isBit) {
+        if (data.descriptorObj.bit) {
           if (data.descriptorObj.bitIndex === 15) {
             data.descriptorObj.bitIndex = 0
             data.descriptorObj.startingAddress += 1
@@ -1237,7 +1237,7 @@ input, select {
                   color: gray;
                 }
               }
-              & > .is-bit {
+              & > .bit {
                 @include text-btn-mixin;
               }
               & > .bit-index {
