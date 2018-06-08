@@ -635,9 +635,7 @@ export default {
       return this.nextDataIdValue--
     },
     onIsTcpChange () {
-      if (this.device.descriptorObj.isTcp) {
-        this.device.descriptorObj.slaveAddress = 1
-      }
+      this.device.descriptorObj.slaveAddress = this.device.descriptorObj.isTcp ? -1 : 1
     },
     dataRefName (id, name) {
       return 'data_' + id + '_' + name
