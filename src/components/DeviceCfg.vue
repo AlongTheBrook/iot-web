@@ -491,13 +491,17 @@ export default {
       }
     }
     if (this.device.datas) {
-      // 检查纠正数据
-      for (const data of this.device.datas) {
-        this.dataCheckAndCorrect(data)
+      // 检查是否是tcp
+      if (this.device.descriptorObj.tcp) {
+        this.device.descriptorObj.slaveAddress = 1 // 防止提交验证出错误而不可见
       }
       // 初始化报警数据ID
       if (this.device.alarmDataIndex >= 0 && this.device.alarmDataIndex < this.device.datas.length) {
         this.alarmDataId = this.device.datas[this.device.alarmDataIndex].id
+      }
+      // 检查纠正数据
+      for (const data of this.device.datas) {
+        this.dataCheckAndCorrect(data)
       }
     }
     // 获取CSRF的防范请求头
